@@ -1,0 +1,643 @@
+---
+title: "scRNA-sequencing Pipeline - Step 2: Seurat v5 Analysis"
+author: "👨‍🔬 Hongchen Xiao"
+date: "📅 `r format(Sys.Date(), '%B %d, %Y')`"
+bibliography: Bioinformatics.bib
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    code_folding: show
+    theme: cosmo
+    highlight: tango
+    df_print: paged
+    fig_caption: true
+    self_contained: true
+---
+
+
+```{r setup, include=FALSE}
+
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  error = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  dpi = 300,
+  cache = FALSE,
+  fig.width = 10,
+  fig.height = 7,
+  dev = "png",
+  dev.args = list(bg = "transparent"),
+  fig.retina = 2,
+  fig.showtext = TRUE,
+  results = "hold"
+)
+
+# Set general options
+options(
+  digits = 3,
+  width = 120,
+  scipen = 999,
+  knitr.kable.NA = "",
+  knitr.table.format = "html"
+)
+
+# Load required packages silently
+suppressPackageStartupMessages({
+  library(knitr)
+  library(kableExtra)
+  library(htmltools)
+})
+```
+
+```{r klippy, echo=FALSE, include=TRUE}
+    klippy::klippy(position = c('bottom', 'right'),
+                   lang = c('r', 'python', 'bash'),
+                   tooltip_message = 'Click to copy', 
+                   tooltip_success = 'Copied!',
+                   color = 'darkRed')
+```
+
+
+```{css, echo=FALSE}
+
+/* Enhanced Custom CSS styling */
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.8;
+  color: #2c3e50;
+  max-width: 1200px;
+  margin: auto;
+  padding: 1em;
+  background-color: #ffffff;
+}
+
+h1, h2, h3, h4 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-top: 2em;
+  border-bottom: 2px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.title {
+  color: #2c3e50;
+  text-align: center;
+  font-size: 2.8em;
+  margin-bottom: 1em;
+  font-weight: 700;
+  border-bottom: none;
+}
+
+.author, .date {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 1.2em;
+  margin-bottom: 2em;
+}
+
+/* Code chunks styling */
+pre {
+  border-radius: 4px;
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+  padding: 1em;
+}
+
+code {
+  color: #c0392b;
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+pre.r:before {
+  content: "R Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+pre.python:before {
+  content: "Python Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+pre.bash:before {
+  content: "bash Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+
+
+
+/* Table of contents styling */
+#TOC {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e9ecef;
+}
+
+.toc-content {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+/* Figure styling */
+.figure {
+  margin: 2em 0;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.caption {
+  margin-top: 0.5em;
+  color: #666;
+  font-style: italic;
+}
+
+/* Tables styling */
+table {
+  width: 100%;
+  margin-bottom: 1em;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+thead {
+  background-color: #f8f9fa;
+}
+
+th, td {
+  padding: 8px;
+  border: 1px solid #dee2e6;
+}
+
+/* Button styling */
+.btn-code-chunk {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* Links styling */
+a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Blockquote styling */
+blockquote {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 4px solid #e9ecef;
+  color: #6c757d;
+}
+```
+
+# 📑 Overview 
+
+## 👋 Introduction 
+
+This R Markdown document presents a comprehensive analytical pipeline for single-cell RNA sequencing (scRNA-seq) data analysis utilizing the Seurat v5 framework[@RN79]. The workflow encompasses essential steps in single-cell transcriptomics analysis, including:
+
+- Raw data processing and quality assessment
+- Normalization and feature selection
+- Batch effect correction and data integration
+- Dimensionality reduction and clustering
+- Cell type identification and annotation
+- Differential expression analysis
+
+The pipeline is optimized for multi-sample analysis and implements best practices in single-cell data processing to ensure robust and reproducible results.
+
+## 📦 Required libraries 
+
+The following section initializes the computational environment by loading essential R packages for scRNA-seq analysis. Each package serves specific analytical functions:
+
+```{r load-libraries, eval=FALSE}
+library(cowplot)
+library(ggplot2)
+library(harmony)
+library(Matrix)
+library(patchwork)
+library(RCurl)
+library(scales)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+library(SingleCellExperiment)
+library(tidyverse)
+set.seed(12345)
+```
+
+# 📁 Project Configuration and Data Import
+
+This section establishes the project infrastructure and imports the raw single-cell data:
+
+1. Configuration of project directories for organized data management
+2. Import of 10x Genomics single-cell expression data from H5 format
+3. Initial Seurat object creation with basic quality filters
+
+```{r setup-and-load-data, eval=FALSE}
+project_dir = "D:/Data_Analysis_Practice_2025/scRNAseq/scRNAseq_Analysis_templates" 
+result_dir = file.path(project_dir, 'results')
+dir.create(result_dir, showWarnings = FALSE)
+final_fig_dir = file.path(result_dir, 'figures')
+dir.create(final_fig_dir, showWarnings = FALSE)
+
+message("Reading data...")
+seurat_data <- Read10X_h5("count/cellrange_aggr_filtered_feature_bc_matrix.h5",  use.names = TRUE,  unique.features = TRUE
+)
+message("...reading data done!")
+
+seurat_obj <- CreateSeuratObject(counts = seurat_data,
+                                 min.features = 100,
+                                 min.cells = 1)
+# remove seurat_data to save memory
+rm(seurat_data)
+```
+
+# 📝 Metadata Integration and Sample Annotation
+
+This section implements systematic metadata annotation to facilitate downstream analyses:
+
+- Assignment of unique sample identifiers based on barcode suffixes
+- Classification of experimental conditions (C1_BPN, FXS_BPN, C1_VEH, FXS_VEH)
+- Integration of experimental metadata with cellular features
+- Quality assurance through metadata verification
+
+The metadata structure is designed to support both sample-specific and condition-wide analyses while maintaining data provenance.
+
+```{r annotate-metadata, eval=FALSE}
+# Add sampleID based on the barcode suffix
+seurat_obj@meta.data <- seurat_obj@meta.data %>%
+  mutate(
+    sampleID = case_when(
+      grepl("-1$", rownames(seurat_obj@meta.data)) ~ "C1_BPN2",
+      grepl("-2$", rownames(seurat_obj@meta.data)) ~ "FXS_BPN2",
+      grepl("-3$", rownames(seurat_obj@meta.data)) ~ "C1_BPN1",
+      grepl("-4$", rownames(seurat_obj@meta.data)) ~ "C1_VEH1",
+      grepl("-5$", rownames(seurat_obj@meta.data)) ~ "FXS_BPN1",
+      grepl("-6$", rownames(seurat_obj@meta.data)) ~ "FXS_VEH2",
+      grepl("-7$", rownames(seurat_obj@meta.data)) ~ "C1_VEH2",
+      grepl("-8$", rownames(seurat_obj@meta.data)) ~ "FXS_VEH1",
+    )
+  )
+
+# Create a general condition identifier
+seurat_obj@meta.data$orig.ident <- as.character(seurat_obj@meta.data$orig.ident)
+seurat_obj@meta.data[grep("-1$|-3$", rownames(seurat_obj@meta.data)), ]$orig.ident  <- "C1_BPN" 
+seurat_obj@meta.data[grep("-2$|-5$", rownames(seurat_obj@meta.data)), ]$orig.ident  <- "FXS_BPN"
+seurat_obj@meta.data[grep("-4$|-7$", rownames(seurat_obj@meta.data)), ]$orig.ident  <- "C1_VEH"
+seurat_obj@meta.data[grep("-6$|-8$", rownames(seurat_obj@meta.data)), ]$orig.ident  <- "FXS_VEH"
+seurat_obj@meta.data$orig.ident <- as.factor(seurat_obj@meta.data$orig.ident)
+
+# Display metadata head and tail
+head(seurat_obj@meta.data)
+tail(seurat_obj@meta.data)
+
+# Save initial object
+saveRDS(seurat_obj,  "results/seurat_obj.rds")
+```
+
+# ✅ Quality Control Assessment
+
+This section implements comprehensive quality control measures to ensure data reliability:
+
+1. Quantification of mitochondrial gene expression as a cell quality indicator
+2. Analysis of key quality metrics:
+   - UMI counts per cell (nCount_RNA)
+   - Genes detected per cell (nFeature_RNA)
+   - Mitochondrial content percentage (percent.mt)
+3. Sample-specific quality visualization through violin plots
+4. Documentation of quality metrics distribution across experimental conditions
+
+The quality control parameters are optimized for neural tissue single-cell analysis while maintaining analytical stringency.
+
+```{r quality-control, eval=FALSE}
+seurat_obj <- readRDS(file.path(result_dir, "seurat_obj.rds"))
+
+seurat_obj <- PercentageFeatureSet(seurat_obj, pattern = "^MT-", col.name = "percent.mt")
+
+# Visualize QC metrics
+pdf(file.path(final_fig_dir, "violinplot.pdf"), width=15, height=10)
+VlnPlot(seurat_obj, features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),  split.by = "sampleID")
+dev.off()
+png(file.path(final_fig_dir, "violinplot.png"), width=15, height=10)
+VlnPlot(seurat_obj, features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),  split.by = "sampleID")
+dev.off()
+```
+
+<div class="figure" style="text-align: center">
+<img src="results/images/violinplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 1:** Violinplot</p>
+</div>
+
+
+
+
+# ✂️ Subset the object based on QC metrics
+```{r subset-qc, eval=FALSE}
+seurat_obj <- subset(seurat_obj, subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & nCount_RNA < 40000 & percent.mt < 10)
+```
+
+# 🎶 Batch Effect Correction using Harmony Integration
+
+This section implements the Harmony algorithm for batch effect correction, a critical step for multi-sample analysis:
+
+1. Data Preparation:
+   - Normalization of expression values
+   - Identification of variable features
+   - Data scaling and PCA computation
+
+2. Harmony Integration:
+   - Batch correction based on original sample identity
+   - Iterative correction of technical variations
+   - Preservation of biological variance
+
+3. Downstream Processing:
+   - UMAP dimensionality reduction on harmonized data
+   - Neighbor graph construction
+   - Initial clustering of integrated data
+
+The integration strategy is optimized to maintain biological signals while removing technical artifacts.
+
+```{r run-harmony, eval=FALSE}
+NML_HAR <- NormalizeData(seurat_obj)
+NML_HAR <- FindVariableFeatures(NML_HAR)
+NML_HAR <- ScaleData(NML_HAR)
+NML_HAR <- RunPCA(NML_HAR, verbose = TRUE)
+NML_HAR <- RunHarmony(NML_HAR, group.by.vars = "orig.ident")
+NML_HAR <- RunUMAP(NML_HAR, reduction = "harmony", dims = 1:30)
+NML_HAR <- FindNeighbors(NML_HAR, reduction = "harmony", dims = 1:30)
+NML_HAR <- FindClusters(NML_HAR)
+saveRDS(NML_HAR, file.path(result_dir, "NML_HAR.rds"))
+
+# Visualize Harmony results
+pdf(file.path(final_fig_dir, "Harmony_Dimplot.pdf"), width=15, height=10)
+DimPlot(NML_HAR, group.by = c("orig.ident", "seurat_clusters"), ncol = 2)
+dev.off()
+
+pdf(file.path(final_fig_dir, "Harmony_Dimplot_2.pdf"), width=15, height=10)
+DimPlot(NML_HAR, group.by = "orig.ident")
+dev.off()
+
+rm(NML_HAR)
+```
+
+<div class="figure" style="text-align: center">
+<img src="results/images/Harmony_Dimplot_2.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 2:** Harmony integration results</p>
+</div>
+
+
+
+
+
+# ⚙️ Data Integration using Reciprocal PCA (RPCA)
+
+This section implements Seurat's reciprocal PCA (RPCA) integration method, providing an alternative approach to batch correction:
+
+1. Sample-specific Processing:
+   - Data splitting by experimental condition
+   - Individual normalization and scaling
+   - Feature selection for each sample
+
+2. RPCA Integration:
+   - Identification of anchors between datasets
+   - Reciprocal PCA-based integration
+   - Conservation of dataset-specific features
+
+3. Integrated Analysis:
+   - Neighbor graph construction on integrated space
+   - Clustering at optimal resolution
+   - UMAP visualization of integrated data
+
+The RPCA approach offers robust integration while preserving unique biological signals present in individual samples.
+
+```{r integration-rpca, eval=FALSE}
+# Split object by sample and process
+seurat_obj[['RNA']] <- split(seurat_obj[['RNA']], f = seurat_obj$sampleID)
+seurat_obj <- NormalizeData(seurat_obj)
+seurat_obj <- FindVariableFeatures(seurat_obj)
+seurat_obj <- ScaleData(seurat_obj)
+seurat_obj <- RunPCA(seurat_obj, verbose = TRUE)
+
+# Visualize Elbow Plot
+pdf(file.path(final_fig_dir, "elbowplot.pdf"), width=15, height=10)
+ElbowPlot(seurat_obj, ndims = 50)
+dev.off()
+
+# Integrate layers with RPCA
+options(future.globals.maxSize = +Inf)
+rpca_seurat_obj <- IntegrateLayers(
+  object = seurat_obj, method = RPCAIntegration,
+  orig.reduction = "pca", new.reduction = "integrated.rpca",
+  verbose = FALSE
+)
+rpca_seurat_obj <- FindNeighbors(rpca_seurat_obj, reduction = "integrated.rpca", dims = 1:30)
+rpca_seurat_obj <- FindClusters(rpca_seurat_obj, resolution = 0.5, cluster.name = "rpca_clusters")
+rpca_seurat_obj <- RunUMAP(
+  rpca_seurat_obj,
+  reduction = "integrated.rpca",
+  dims = 1:30,
+  reduction.name = "umap_rpca"
+)
+
+# Visualize RPCA results
+pdf(file.path(final_fig_dir, "Rpca_Dimplot.pdf"), width=15, height=10)
+DimPlot(rpca_seurat_obj, group.by = c("orig.ident", "rpca_clusters"), ncol = 2)
+dev.off()
+
+saveRDS(rpca_seurat_obj, file.path(result_dir, "rpca_seurat_obj.rds"))
+rm(rpca_seurat_obj)
+```
+
+<div class="figure" style="text-align: center">
+<img src="results/images/Rpca_Dimplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 3:** RPCA integration results</p>
+</div>
+
+
+
+
+# 🏷️ Cell Population Identification and Annotation
+
+This section implements systematic cell population identification and biological annotation:
+
+1. Multi-resolution Clustering Analysis:
+   - Iterative clustering at varying resolutions (0.1-4.0)
+   - Optimization of cluster granularity
+   - Assessment of cluster stability
+
+2. Cell Type Annotation Strategy:
+   - Expression-based cluster characterization
+   - Integration of known cellular markers
+   - Systematic annotation of identified populations
+
+3. Quality Assessment:
+   - Cluster separation metrics
+   - Marker gene expression validation
+   - Population distribution analysis
+
+The clustering approach is designed to capture both major cell types and subtle subpopulations while maintaining biological relevance.
+
+```{r clustering-and-annotation, eval=FALSE}
+# This is a placeholder for the long loop. 
+# The original script runs this loop from res 0.1 to 4.0.
+# For this Rmd, we will just run for one resolution as an example.
+i = 0.7 
+
+seurat_obj <- readRDS(file.path(result_dir, "rpca_seurat_obj.rds")) # Using RPCA integrated object
+seurat_obj <- FindClusters(seurat_obj, resolution = i, cluster.name = "rpca_clusters")
+seurat_obj <- RunUMAP(seurat_obj, reduction = "integrated.rpca", dims = 1:30, reduction.name = "umap_rpca")
+
+# View UMAP
+pdf(file.path(final_fig_dir, paste0("annotated_res", i, "_Dimplot.pdf")), width=15, height=10)
+DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "rpca_clusters", label = TRUE)
+dev.off()
+
+```
+
+<div class="figure" style="text-align: center">
+<img src="results/images/annotated_res0.7_Dimplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 4:** Clustering results at resolution 0.7</p>
+</div>
+
+
+
+# 🧑‍🏫 Expert-guided Cell Type Annotation
+
+This section implements manual cell type annotation based on established molecular signatures and biological knowledge:
+
+1. Cell Type Assignment:
+   - Cluster-specific annotation based on marker profiles
+   - Identification of distinct neural populations
+   - Classification of proliferative and mature cell states
+
+2. Annotation Validation:
+   - Visual confirmation through UMAP projection
+   - Assessment of population-specific markers
+   - Documentation of annotation confidence
+
+The manual annotation process integrates both computational results and domain expertise to ensure biological accuracy.
+
+```{r manual-annotation, eval=FALSE}
+seurat_obj@meta.data$annotated_celltype  <-  NA
+seurat_obj@meta.data[seurat_obj@meta.data$rpca_clusters %in% c(4), 'annotated_celltype'] = 'radial glia'
+seurat_obj@meta.data[seurat_obj@meta.data$rpca_clusters %in% c(7,14,18,15), 'annotated_celltype'] = 'proliferating radial glia'
+
+# View annotated UMAP
+pdf(file.path(final_fig_dir, "annotated_Dimplot.pdf"), width=15, height=10)
+DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "annotated_celltype", label = TRUE)
+dev.off()
+
+saveRDS(seurat_obj, file.path(result_dir, "annotated_seurat_obj.rds"))
+```
+<div class="figure" style="text-align: center">
+<img src="results/images/annotated_Dimplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 5:** Annotated cell types on UMAP</p>
+</div>
+
+
+# 📊 Differential Gene Expression (DEG) Analysis
+
+Perform DEG analysis between conditions for specific cell types.
+
+```{r deg-analysis, eval=FALSE}
+annotated_combined_obj <- readRDS(file.path(result_dir, "annotated_res3.5_combined_res3.0_obj.rds"))
+
+## Example: Find DEGs between FXS_VEH and C1_VEH in radial glia
+Idents(annotated_combined_obj) <- "orig.ident"
+radial_glia_obj <- subset(annotated_combined_obj, subset = annotated_celltype == "radial glia")
+radial_glia_obj <- JoinLayers(radial_glia_obj)
+deg_markers <- FindMarkers(
+  radial_glia_obj,
+  logfc.threshold = 0.25,
+  ident.1 = "FXS_VEH",
+  ident.2 = "C1_VEH"
+)
+
+head(deg_markers)
+write.csv(deg_markers, file.path(result_dir, "radial_glia_FXS_vs_C1_DEGs.csv"))
+```
+
+# 🧬 Gene Ontology (GO) Analysis
+
+Perform GO enrichment analysis on the identified differentially expressed genes.
+
+```{r go-analysis, eval=FALSE}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+# Use genes from the previous DEG analysis
+genes <- rownames(deg_markers[deg_markers$p_val_adj < 0.05, ])
+
+# Map gene symbols to Entrez IDs
+entrez_ids <- mapIds(org.Hs.eg.db, keys = genes, column = "ENTREZID", keytype = "SYMBOL", multiVals = "first")
+entrez_ids <- entrez_ids[!is.na(entrez_ids)]
+
+# Run GO enrichment
+go_results <- enrichGO(
+  gene          = entrez_ids,
+  OrgDb         = org.Hs.eg.db,
+  ont           = "BP", # Biological Process
+  pAdjustMethod = "BH",
+  qvalueCutoff  = 0.05,
+  readable      = TRUE
+)
+
+# Plot results
+pdf(file.path(final_fig_dir, "GO_dotplot.pdf"), width=10, height=8)
+dotplot(go_results, showCategory=20)
+dev.off()
+
+
+```
+
+<div class="figure" style="text-align: center">
+<img src="results/images/GO_dotplot.png" alt="Workflow of RNA-seq data analysis" width="60%" />
+<p class="caption">**Figure 6:** GO enrichment analysis results</p>
+</div>
+
+
+# ℹ️ Session Information
+
+This chunk provides information about the R session, including package versions.
+
+```{r session-info}
+sessionInfo()
+```
+
+# 📚 References
+
+
