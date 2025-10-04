@@ -1,0 +1,520 @@
+---
+title: "scRNA-sequencing Pipeline - Step 1: Alignment with Cell Ranger"
+author: "👨‍🔬 Hongchen Xiao"
+date: "📅 `r format(Sys.Date(), '%B %d, %Y')`"
+bibliography: Bioinformatics.bib
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    code_folding: show
+    theme: cosmo
+    highlight: tango
+    df_print: paged
+    fig_caption: true
+    self_contained: true
+---
+
+
+```{r setup, include=FALSE}
+
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  error = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  dpi = 300,
+  cache = FALSE,
+  fig.width = 10,
+  fig.height = 7,
+  dev = "png",
+  dev.args = list(bg = "transparent"),
+  fig.retina = 2,
+  fig.showtext = TRUE,
+  results = "hold"
+)
+
+# Set general options
+options(
+  digits = 3,
+  width = 120,
+  scipen = 999,
+  knitr.kable.NA = "",
+  knitr.table.format = "html"
+)
+
+# Load required packages silently
+suppressPackageStartupMessages({
+  library(knitr)
+  library(kableExtra)
+  library(htmltools)
+})
+```
+
+```{r klippy, echo=FALSE, include=TRUE}
+    klippy::klippy(position = c('bottom', 'right'),
+                   lang = c('r', 'python', 'bash'),
+                   tooltip_message = 'Click to copy', 
+                   tooltip_success = 'Copied!',
+                   color = 'darkRed')
+```
+
+
+```{css, echo=FALSE}
+
+/* Enhanced Custom CSS styling */
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.8;
+  color: #2c3e50;
+  max-width: 1200px;
+  margin: auto;
+  padding: 1em;
+  background-color: #ffffff;
+}
+
+h1, h2, h3, h4 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-top: 2em;
+  border-bottom: 2px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.title {
+  color: #2c3e50;
+  text-align: center;
+  font-size: 2.8em;
+  margin-bottom: 1em;
+  font-weight: 700;
+  border-bottom: none;
+}
+
+.author, .date {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 1.2em;
+  margin-bottom: 2em;
+}
+
+/* Code chunks styling */
+pre {
+  border-radius: 4px;
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+  padding: 1em;
+}
+
+code {
+  color: #c0392b;
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+pre.r:before {
+  content: "R Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+pre.python:before {
+  content: "Python Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+pre.bash:before {
+  content: "bash Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+
+
+
+/* Table of contents styling */
+#TOC {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e9ecef;
+}
+
+.toc-content {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+/* Figure styling */
+.figure {
+  margin: 2em 0;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.caption {
+  margin-top: 0.5em;
+  color: #666;
+  font-style: italic;
+}
+
+/* Tables styling */
+table {
+  width: 100%;
+  margin-bottom: 1em;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+thead {
+  background-color: #f8f9fa;
+}
+
+th, td {
+  padding: 8px;
+  border: 1px solid #dee2e6;
+}
+
+/* Button styling */
+.btn-code-chunk {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* Links styling */
+a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Blockquote styling */
+blockquote {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 4px solid #e9ecef;
+  color: #6c757d;
+}
+```
+
+# 🔬 Overview
+
+::: {.note}
+**Welcome to the Cell Ranger Analysis Pipeline Guide!**
+
+This comprehensive guide walks you through the crucial upstream analysis of single-cell RNA sequencing (scRNA-seq) data. At the heart of this process is the powerful Cell Ranger pipeline from 10x Genomics[@RN21], which transforms your raw sequencing data into analysis-ready datasets through these key steps:
+
+1. Read alignment
+2. Quality filtering
+3. Barcode counting
+4. UMI (Unique Molecular Identifier) counting
+
+The end result? A clean, organized feature-barcode matrix ready for your downstream analysis.
+:::
+
+This foundational step is essential before moving on to more advanced analyses using popular tools like Seurat or Scanpy. Think of it as preparing your raw ingredients before cooking a gourmet meal - the quality of your preparation directly impacts your final results.
+
+<div class="figure" style="text-align: center">
+<img src="scRNAseq-analysis-workflow-2.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 1:** scRNAseq analysis workflow[@RN12]</p>
+</div>
+
+
+
+# 🛠️ Setting up the Environment
+
+## 💻 System Requirements
+
+::: {.warning}
+**Important Hardware Considerations**
+
+Cell Ranger demands significant computational resources. Before proceeding, ensure you have access to a Linux-based high-performance computing (HPC) cluster or a powerful cloud server. This tool cannot run on Windows or macOS systems.
+:::
+
+Here's what you'll need:
+
+| Resource | Minimum Requirement | Recommended |
+|----------|-------------------|-------------|
+| **Operating System** | CentOS/RedHat 7.0+ or Ubuntu 14.04+ | Latest LTS version |
+| **Memory (RAM)** | 64GB | 128GB for large datasets |
+| **CPU Cores** | 8 cores | 16+ cores |
+
+> 💡 **Pro Tip**: When working with large datasets (>10,000 cells), opt for the recommended specifications to ensure smooth processing.
+
+## Downloading Cell Ranger
+
+The first step is to download the Cell Ranger software from the 10x Genomics website. We use the `wget` command-line utility for this. The `-O` flag specifies the output file name.
+
+```{bash, eval=FALSE}
+# This command downloads the Cell Ranger software archive.
+# The URL is a signed link from 10x Genomics and may expire.
+# Always check the 10x Genomics support site for the latest version and download link.
+wget -O cellranger-9.0.1.tar.gz "https://cf.10xgenomics.com/releases/cell-exp/cellranger-9.0.1.tar.gz"
+```
+
+## Downloading the Reference Genome
+
+Cell Ranger requires a species-specific reference genome to align the sequencing reads. 10x Genomics provides pre-built references that include the necessary genome sequence (FASTA) and gene annotations (GTF).
+
+Here, we download the pre-built GRCh38 (Human) reference.
+
+```{bash, eval=FALSE}
+# Download the official 10x Genomics reference for Human (GRCh38).
+# This package contains all the necessary files for Cell Ranger to perform alignment.
+wget "https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2024-A.tar.gz"
+```
+
+## Unpacking and Installation
+
+Once downloaded, the software and reference archives need to be unpacked using the `tar` command.
+
+```{bash, eval=FALSE}
+# The 'tar' command is used to extract files from an archive.
+# -x: extract
+# -z: decompress (for .gz files)
+# -v: verbose (list files as they are extracted)
+# -f: specify the input file
+
+tar -xzvf cellranger-9.0.1.tar.gz
+tar -xzvf refdata-gex-GRCh38-2024-A.tar.gz
+```
+
+Next, add the Cell Ranger executable to your system's `PATH`. This allows you to run the `cellranger` command from any directory.
+
+```{bash, eval=FALSE}
+# The PATH environment variable is a list of directories that the shell searches
+# for executable files. By adding the Cell Ranger directory to the PATH, you
+# make the 'cellranger' command globally available.
+# IMPORTANT: Replace "/path/to/your/cellranger-9.0.1" with the actual path where you extracted Cell Ranger.
+export PATH=/path/to/your/cellranger-9.0.1:$PATH
+
+# To make this change permanent, add the line above to your shell profile file
+# (e.g., ~/.bashrc or ~/.zshrc) and then run 'source ~/.bashrc'.
+```
+
+<br>
+
+# 📁 Preparing Input Files
+
+## 📋 FASTQ File Naming Convention
+
+::: {.note}
+**File Naming is Critical!**
+
+Cell Ranger is particular about how your files are named. Following this convention ensures proper sample identification and processing.
+:::
+
+### Required Format:
+```
+[Sample Name]_S1_L00[Lane Number]_[Read Type]_001.fastq.gz
+```
+
+| Component | Description | Example |
+|-----------|-------------|----------|
+| **Sample Name** | Your unique sample identifier | `pbmc_sample1` |
+| **Lane Number** | Sequencing lane identifier | `L001`, `L002` |
+| **Read Type** | Type of sequencing read | `R1` (barcodes/UMIs)<br>`R2` (transcript sequence) |
+
+> 💡 **Quick Tip**: Always double-check your file names before starting the analysis. A misnamed file can cause the entire pipeline to fail.
+
+## Samplesheet for Aggregation
+
+When running multiple samples that you intend to combine, you need a samplesheet. The SLURM script below uses a simple two-column CSV file to define the sample IDs and the location of their corresponding FASTQ files.
+
+**`samplesheet_cellranger.csv`**
+```csv
+sample,fastq_path
+11C1_BPN1,/path/to/your/rawdata
+11C1_BPN2,/path/to/your/rawdata
+11C1_VEH1,/path/to/your/rawdata
+11C1_VEH2,/path/to/your/rawdata
+FXS_BPN1,/path/to/your/rawdata
+FXS_BPN2,/path/to/your/rawdata
+FXS_VEH1,/path/to/your/rawdata
+FXS_VEH2,/path/to/your/rawdata
+```
+<br>
+
+# 🏃 💨 Running the Cell Ranger Pipeline
+
+## SLURM Script for `count` and `aggr`
+
+The following is a complete SLURM script to automate the `cellranger count` and `cellranger aggr` processes. This script is designed for an HPC environment using the SLURM workload manager.
+
+**Note on snRNA-seq data:** If you are analyzing single-nuclei data, add the `--include-introns` flag to the `cellranger count` command. This is crucial for accurately quantifying gene expression from pre-mRNA molecules that are abundant in the nucleus.
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+# -- SLURM Directives --
+# These lines are instructions for the SLURM scheduler.
+#SBATCH --job-name=cellranger_count_aggr  # Job name
+#SBATCH --nodes=1                         # Number of nodes to use
+#SBATCH --ntasks=10                       # Number of tasks (often matches cores)
+#SBATCH --cpus-per-task=4                 # Number of CPUs per task
+#SBATCH --mem=240G                        # Memory allocation
+#SBATCH --time=24:00:00                   # Maximum run time (HH:MM:SS)
+#SBATCH --output=./SLURM_OUT/%x_%A_%a.out # Standard output log file
+#SBATCH --error=./SLURM_OUT/%x_%A_%a.err  # Standard error log file
+
+# -- Variable Definitions --
+# Define paths to your data, reference, and output directories.
+# IMPORTANT: Replace these placeholder paths with the actual paths on your server.
+FASTQ_DIR="/path/to/your/rawdata/"
+REFERENCE="/path/to/your/refdata-gex-GRCh38-2024-A/"
+OUTPUT_DIR="/path/to/your/cellranger_results/"
+SAMPLE_SHEET="/path/to/your/samplesheet_cellranger.csv"
+
+# Ensure the output directory exists before starting
+mkdir -p $OUTPUT_DIR
+
+# -- Function to Run cellranger count --
+# This function encapsulates the cellranger count command for a single sample.
+run_cellranger_count() {
+  local sample_id=$1
+  local fastq_path=$2
+  
+  echo "Running cellranger count for sample: $sample_id"
+  
+  cellranger count \
+    --id="$sample_id"                       # Unique ID for the run and output folder name
+    --transcriptome="$REFERENCE"            # Path to the reference genome
+    --fastqs="$fastq_path"                  # Path to the directory containing FASTQ files
+    --sample="$sample_id"                   # The sample name prefix of the FASTQ files
+    --create-bam=true                       # (Optional) Create a BAM file for visualization
+}
+
+# -- Main Execution Loop --
+# This loop reads the sample sheet line by line and executes the function for each sample.
+cd $OUTPUT_DIR # Change to the output directory to keep results organized
+
+# The `while read` loop processes the CSV file.
+# `tail -n +2` is used to skip the header row of the CSV.
+while IFS=',' read -r sample_id fastq_path; do
+    run_cellranger_count "$sample_id" "$fastq_path"
+done < <(tail -n +2 "$SAMPLE_SHEET")
+
+# -- Aggregation Step --
+# This part of the script prepares for and runs `cellranger aggr` to combine all samples.
+
+# 1. Prepare a CSV config file for cellranger aggr.
+# This file tells `aggr` where to find the output of each `count` run.
+echo "sample_id,molecule_h5" > aggr_config.csv
+
+# 2. Find all the `molecule_info.h5` files from the `count` outputs and add them to the CSV.
+find . -mindepth 2 -maxdepth 2 -type f -name 'molecule_info.h5' | while read -r molecule_h5; do
+    sample_id=$(basename "$(dirname "$(dirname "$molecule_h5")")")
+    echo "$sample_id,$molecule_h5" >> aggr_config.csv
+done
+
+echo "Created aggr_config.csv for aggregation:"
+cat aggr_config.csv
+
+# 3. Run cellranger aggr.
+# This command combines the data from all samples into a single feature-barcode matrix.
+echo "Running cellranger aggr..."
+cellranger aggr \
+  --id="aggregated_data"      # Name for the final aggregated output folder
+  --csv="aggr_config.csv"     # The aggregation CSV created above
+  --normalize=mapped          # Normalization method: 'mapped' (default) or 'none'
+
+echo "Cell Ranger pipeline finished."
+```
+
+<br>
+
+# 📊 Understanding the Output
+
+::: {.note}
+**Navigate Your Results**
+
+A successful Cell Ranger run produces a rich collection of output files. While each file serves a specific purpose, the crown jewel for your downstream analysis is the **feature-barcode matrix**.
+:::
+
+## `cellranger count` Output Log
+A successful `cellranger count` run will produce an output log similar to this for each sample:
+
+```text
+- BAM CSI index:                            null
+- Filtered feature-barcode matrices MEX:    /path/to/outs/filtered_feature_bc_matrix
+- Filtered feature-barcode matrices HDF5:   /path/to/outs/filtered_feature_bc_matrix.h5
+- Unfiltered feature-barcode matrices MEX:  /path/to/outs/raw_feature_bc_matrix
+- Unfiltered feature-barcode matrices HDF5: /path/to/outs/raw_feature_bc_matrix.h5
+- Secondary analysis output CSV:            /path/to/outs/analysis
+- Per-molecule read information:            /path/to/outs/molecule_info.h5
+- Loupe Browser file:                       /path/to/outs/cloupe.cloupe
+
+Waiting 6 seconds for UI to do final refresh.
+Pipestance completed successfully!
+```
+
+## `cellranger aggr` Output Log
+Similarly, a successful `cellranger aggr` run will generate this output log:
+
+```text
+- count:
+    Aggregation metrics summary JSON:       /path/to/outs/count/summary.json
+    Secondary analysis output CSV:          /path/to/outs/count/analysis
+    Filtered feature-barcode matrices MEX:  /path/to/outs/count/filtered_feature_bc_matrix
+    Filtered feature-barcode matrices HDF5: /path/to/outs/count/filtered_feature_bc_matrix.h5
+    Loupe Browser file:                     /path/to/outs/count/cloupe.cloupe
+    feature_reference:                      /path/to/aggregated_data/outs/count/feature_reference.csv
+
+Waiting 6 seconds for UI to do final refresh.
+Pipestance completed successfully!
+```
+
+## 📂 Final Output Structure
+
+::: {.note}
+**Your Results Directory Guide**
+
+After successful completion, you'll find your aggregated results in the `aggregated_data/` directory. Let's explore the treasure trove of data within the `outs/` subdirectory:
+:::
+
+```
+.
+└── outs/
+    ├── count/
+    │   ├── analysis/                     # Secondary analysis results (clustering, t-SNE, etc.)
+    │   ├── filtered_feature_bc_matrix/   # Filtered gene-barcode matrices in MEX format
+    │   ├── cloupe.cloupe                 # Loupe Browser visualization file
+    │   ├── feature_reference.csv         # Feature reference for the aggregated dataset
+    │   ├── filtered_feature_bc_matrix.h5 # Filtered gene-barcode matrices in HDF5 format
+    │   └── summary.json                  # Aggregation summary metrics
+    ├── aggregation.csv                   # The input aggregation CSV
+    └── web_summary.html                  # HTML summary of the run
+```
+
+**The most important file for starting your analysis in tools like Seurat or Scanpy is `filtered_feature_bc_matrix.h5`.**
+<br>
+
+
+# References
