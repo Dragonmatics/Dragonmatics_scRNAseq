@@ -349,13 +349,18 @@ seurat_obj <- readRDS(file.path(result_dir, "seurat_obj.rds"))
 seurat_obj <- PercentageFeatureSet(seurat_obj, pattern = "^MT-", col.name = "percent.mt")
 
 # Visualize QC metrics
+VlnPlot(seurat_obj, features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),  split.by = "sampleID")
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf(file.path(final_fig_dir, "violinplot.pdf"), width=15, height=10)
 VlnPlot(seurat_obj, features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),  split.by = "sampleID")
 dev.off()
-png(file.path(final_fig_dir, "violinplot.png"), width=15, height=10)
+png(file.path(final_fig_dir, "violinplot.png"), width=15, height=10, units= "in", res = 300)
 VlnPlot(seurat_obj, features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),  split.by = "sampleID")
 dev.off()
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="results/images/violinplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
@@ -403,6 +408,12 @@ NML_HAR <- FindClusters(NML_HAR)
 saveRDS(NML_HAR, file.path(result_dir, "NML_HAR.rds"))
 
 # Visualize Harmony results
+DimPlot(NML_HAR, group.by = "orig.ident")
+
+rm(NML_HAR)
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf(file.path(final_fig_dir, "Harmony_Dimplot.pdf"), width=15, height=10)
 DimPlot(NML_HAR, group.by = c("orig.ident", "seurat_clusters"), ncol = 2)
 dev.off()
@@ -411,8 +422,8 @@ pdf(file.path(final_fig_dir, "Harmony_Dimplot_2.pdf"), width=15, height=10)
 DimPlot(NML_HAR, group.by = "orig.ident")
 dev.off()
 
-rm(NML_HAR)
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="results/images/Harmony_Dimplot_2.png" alt="Workflow of RNA-seq data analysis" width="90%" />
@@ -453,10 +464,27 @@ seurat_obj <- ScaleData(seurat_obj)
 seurat_obj <- RunPCA(seurat_obj, verbose = TRUE)
 
 # Visualize Elbow Plot
+
+ElbowPlot(seurat_obj, ndims = 50)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf(file.path(final_fig_dir, "elbowplot.pdf"), width=15, height=10)
 ElbowPlot(seurat_obj, ndims = 50)
 dev.off()
 
+png(file.path(final_fig_dir, "elbowplot.png"), width=15, height=10, units = "in", res = 300)
+ElbowPlot(seurat_obj, ndims = 50)
+dev.off()
+```
+
+<div class="figure" style="text-align: center">
+<img src="results/images/elbowplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
+<p class="caption">**Figure 3:** Elbowplot</p>
+</div>
+
+```{r, eval=FALSE}
 # Integrate layers with RPCA
 options(future.globals.maxSize = +Inf)
 rpca_seurat_obj <- IntegrateLayers(
@@ -474,17 +502,27 @@ rpca_seurat_obj <- RunUMAP(
 )
 
 # Visualize RPCA results
-pdf(file.path(final_fig_dir, "Rpca_Dimplot.pdf"), width=15, height=10)
+
 DimPlot(rpca_seurat_obj, group.by = c("orig.ident", "rpca_clusters"), ncol = 2)
-dev.off()
 
 saveRDS(rpca_seurat_obj, file.path(result_dir, "rpca_seurat_obj.rds"))
 rm(rpca_seurat_obj)
 ```
 
+```{r, echo=FALSE, eval=FALSE}
+pdf(file.path(final_fig_dir, "Rpca_Dimplot.pdf"), width=15, height=10)
+DimPlot(rpca_seurat_obj, group.by = c("orig.ident", "rpca_clusters"), ncol = 2)
+dev.off()
+
+png(file.path(final_fig_dir, "Rpca_Dimplot.png"), width=15, height=10, units = "in", res = 300)
+DimPlot(rpca_seurat_obj, group.by = c("orig.ident", "rpca_clusters"), ncol = 2)
+dev.off()
+```
+
+
 <div class="figure" style="text-align: center">
 <img src="results/images/Rpca_Dimplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
-<p class="caption">**Figure 3:** RPCA integration results</p>
+<p class="caption">**Figure 4:** RPCA integration results</p>
 </div>
 
 
@@ -522,15 +560,25 @@ seurat_obj <- FindClusters(seurat_obj, resolution = i, cluster.name = "rpca_clus
 seurat_obj <- RunUMAP(seurat_obj, reduction = "integrated.rpca", dims = 1:30, reduction.name = "umap_rpca")
 
 # View UMAP
+
+DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "rpca_clusters", label = TRUE)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf(file.path(final_fig_dir, paste0("annotated_res", i, "_Dimplot.pdf")), width=15, height=10)
 DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "rpca_clusters", label = TRUE)
 dev.off()
 
+png(file.path(final_fig_dir, paste0("annotated_res", i, "_Dimplot.png")), width=15, height=10, units = "in", res = 300)
+DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "rpca_clusters", label = TRUE)
+dev.off()
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="results/images/annotated_res0.7_Dimplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
-<p class="caption">**Figure 4:** Clustering results at resolution 0.7</p>
+<p class="caption">**Figure 5:** Clustering results at resolution 0.7</p>
 </div>
 
 
@@ -557,15 +605,25 @@ seurat_obj@meta.data[seurat_obj@meta.data$rpca_clusters %in% c(4), 'annotated_ce
 seurat_obj@meta.data[seurat_obj@meta.data$rpca_clusters %in% c(7,14,18,15), 'annotated_celltype'] = 'proliferating radial glia'
 
 # View annotated UMAP
+
+DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "annotated_celltype", label = TRUE)
+
+saveRDS(seurat_obj, file.path(result_dir, "annotated_seurat_obj.rds"))
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf(file.path(final_fig_dir, "annotated_Dimplot.pdf"), width=15, height=10)
 DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "annotated_celltype", label = TRUE)
 dev.off()
 
-saveRDS(seurat_obj, file.path(result_dir, "annotated_seurat_obj.rds"))
+png(file.path(final_fig_dir, "annotated_Dimplot.png"), width=15, height=10)
+DimPlot(seurat_obj, reduction = "umap_rpca", group.by = "annotated_celltype", label = TRUE)
+dev.off()
 ```
+
 <div class="figure" style="text-align: center">
 <img src="results/images/annotated_Dimplot.png" alt="Workflow of RNA-seq data analysis" width="90%" />
-<p class="caption">**Figure 5:** Annotated cell types on UMAP</p>
+<p class="caption">**Figure 6:** Annotated cell types on UMAP</p>
 </div>
 
 
@@ -617,16 +675,23 @@ go_results <- enrichGO(
 )
 
 # Plot results
+dotplot(go_results, showCategory=20)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf(file.path(final_fig_dir, "GO_dotplot.pdf"), width=10, height=8)
 dotplot(go_results, showCategory=20)
 dev.off()
 
-
+png(file.path(final_fig_dir, "GO_dotplot.png"), width=10, height=8, units = "in", res = 300)
+dotplot(go_results, showCategory=20)
+dev.off()
 ```
 
 <div class="figure" style="text-align: center">
 <img src="results/images/GO_dotplot.png" alt="Workflow of RNA-seq data analysis" width="60%" />
-<p class="caption">**Figure 6:** GO enrichment analysis results</p>
+<p class="caption">**Figure 7:** GO enrichment analysis results</p>
 </div>
 
 
