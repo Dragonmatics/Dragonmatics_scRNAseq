@@ -342,7 +342,27 @@ visualize the top 3 hub genes and 6 other genes per module.
 
 options(future.globals.maxSize = 1.0 * 1e10)
 # hubgene network
-png("figures/network_visualization/hub_net.png", width=1600, height=1600)
+
+HubGeneNetworkPlot(
+  seurat_obj,
+  n_hubs = 3, n_other=5,
+  edge_prop = 0.75,
+  mods = 'all'
+)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+png("figures/network_visualization/hub_net.png", width=16, height=12, units = "in", res = 300, bg = "white")
+HubGeneNetworkPlot(
+  seurat_obj,
+  n_hubs = 3, n_other=5,
+  edge_prop = 0.75,
+  mods = 'all'
+)
+dev.off()
+
+pdf("figures/network_visualization/hub_net.png", width=16, height=12)
 HubGeneNetworkPlot(
   seurat_obj,
   n_hubs = 3, n_other=5,
@@ -369,10 +389,21 @@ using their own custom code.
 ```{r eval=FALSE}
 
 g <- HubGeneNetworkPlot(seurat_obj,  return_graph=TRUE)
-png("figures/network_visualization/hub_net_custom.png", width=1600, height=1600)
+
+plot(g, vertex.size=5, vertex.label.cex=0.7)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+png("figures/network_visualization/hub_net_custom.png", width=16, height=12, units = "in", res = 300, bg = "white")
+plot(g, vertex.size=5, vertex.label.cex=0.7)
+dev.off()
+
+pdf("figures/network_visualization/hub_net_custom.pdf", width=16, height=12)
 plot(g, vertex.size=5, vertex.label.cex=0.7)
 dev.off()
 ```
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/hub_net_custom.png" alt="hub_net_custom" style="width: 70%;"/>  
 <p class="caption" style="text-align: center;"><b>**Figure 4.**</b> Hub gene network (custom)</p>
@@ -387,7 +418,26 @@ modules <- GetModules(seurat_obj)
 mods <- levels(modules$module); mods <- mods[mods != 'grey']
 
 # hubgene network
-png("figures/network_visualization/hub_net_5mods.png", width=1600, height=1600)
+HubGeneNetworkPlot(
+  seurat_obj,
+  n_hubs = 10, n_other=20,
+  edge_prop = 0.75,
+  mods = mods[1:5] # only select 5 modules
+)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+png("figures/network_visualization/hub_net_5mods.png", width=16, height=12, units = "in", res = 300)
+HubGeneNetworkPlot(
+  seurat_obj,
+  n_hubs = 10, n_other=20,
+  edge_prop = 0.75,
+  mods = mods[1:5] # only select 5 modules
+)
+dev.off()
+
+pdf("figures/network_visualization/hub_net_5mods.pdf", width=16, height=12)
 HubGeneNetworkPlot(
   seurat_obj,
   n_hubs = 10, n_other=20,
@@ -443,14 +493,26 @@ Next we will make a simple visualization of the UMAP using ggplot2:
 umap_df <- GetModuleUMAP(seurat_obj)
 
 # plot with ggplot
+ggplot(umap_df, aes(x=UMAP1, y=UMAP2)) +
+  geom_point(
+   color=umap_df$color, # color each point by WGCNA module
+   size=umap_df$kME*2 # size of each point based on intramodular connectivity
+  ) +
+  umap_theme()
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggplot(umap_df, aes(x=UMAP1, y=UMAP2)) +
   geom_point(
    color=umap_df$color, # color each point by WGCNA module
    size=umap_df$kME*2 # size of each point based on intramodular connectivity
   ) +
   umap_theme()
-ggsave("figures/network_visualization/hubgene_umap.png", p, width=6, height=6)
+ggsave("figures/network_visualization/hubgene_umap.png", p, width=6, height=6, bg = "white")
+ggsave("figures/network_visualization/hubgene_umap.pdf", p, width=6, height=6, )
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/hubgene_umap.png" alt="hubgene_umap" style="width: 70%;"/>
@@ -464,7 +526,33 @@ We can use the function `ModuleUMAPPlot` to plot the genes and their co-expressi
 relationships.
 
 ```{r eval=FALSE}
-png("figures/network_visualization/hubgene_umap_igraph.png", width=1200, height=1200)
+
+ModuleUMAPPlot(
+  seurat_obj,
+  edge.alpha=0.25,
+  sample_edges=TRUE,
+  edge_prop=0.1, # proportion of edges to sample (20% here)
+  label_hubs=2 ,# how many hub genes to plot per module?
+  keep_grey_edges=FALSE
+
+)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+png("figures/network_visualization/hubgene_umap_igraph.png", width=12, height=12, units = "in", res = 300)
+ModuleUMAPPlot(
+  seurat_obj,
+  edge.alpha=0.25,
+  sample_edges=TRUE,
+  edge_prop=0.1, # proportion of edges to sample (20% here)
+  label_hubs=2 ,# how many hub genes to plot per module?
+  keep_grey_edges=FALSE
+
+)
+dev.off()
+
+pdf("figures/network_visualization/hubgene_umap_igraph.png", width=12, height=12)
 ModuleUMAPPlot(
   seurat_obj,
   edge.alpha=0.25,
@@ -491,8 +579,14 @@ own custom plots or to perform downstream network analysis:
 
 ```{r eval=FALSE}
 
+ModuleUMAPPlot(seurat_obj,  return_graph=TRUE)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 gg <- ModuleUMAPPlot(seurat_obj,  return_graph=TRUE)
 ggsave("figures/network_visualization/hubgene_umap_igraph_custom.png", plot(gg, vertex.size=5, vertex.label.cex=0.7), width=10, height=10)
+ggsave("figures/network_visualization/hubgene_umap_igraph_custom.pdf", plot(gg, vertex.size=5, vertex.label.cex=0.7), width=10, height=10)
 ```
 
 ### Varying the number of hub genes
@@ -672,14 +766,24 @@ seurat_obj <- RunModuleUMAP(
 umap_df <- GetModuleUMAP(seurat_obj)
 
 # plot with ggplot
-p <- ggplot(umap_df, aes(x=UMAP1, y=UMAP2)) +
+ggplot(umap_df, aes(x=UMAP1, y=UMAP2)) +
   geom_point(
    color=umap_df$color, # color each point by WGCNA module
    size=umap_df$kME*2 # size of each point based on intramodular connectivity
   ) +
   umap_theme()
 
+```
+
+```{r, echo=FALSE, eval=FALSE}
+p <- ggplot(umap_df, aes(x=UMAP1, y=UMAP2)) +
+  geom_point(
+   color=umap_df$color, # color each point by WGCNA module
+   size=umap_df$kME*2 # size of each point based on intramodular connectivity
+  ) +
+  umap_theme()
 ggsave("figures/network_visualization/hubgene_umap_supervised.png", p, width=10, height=10)
+ggsave("figures/network_visualization/hubgene_umap_supervised.pdf", p, width=10, height=10)
 ```
 
 <div class="figure" style="text-align: center">
@@ -887,15 +991,23 @@ graph <- cur_TOM %>%
   tidygraph::activate(nodes) 
 
 # make the plot with ggraph
+ggraph(graph) + 
+  geom_edge_link(color='grey', alpha=0.2) + 
+  geom_node_point(color='black') +
+  geom_node_label(aes(label = name), repel=TRUE, max.overlaps=Inf, fontface='italic') 
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+
 p <- ggraph(graph) + 
   geom_edge_link(color='grey', alpha=0.2) + 
   geom_node_point(color='black') +
   geom_node_label(aes(label = name), repel=TRUE, max.overlaps=Inf, fontface='italic') 
 
 ggsave("figures/network_visualization/custom_net0.png", p, width=8, height=7)
-
+ggsave("figures/network_visualization/custom_net0.pdf", p, width=8, height=7)
 ```
-
 
 
 ```{r eval=FALSE, echo=FALSE}
@@ -907,18 +1019,28 @@ lay <- create_layout(graph, layout='sparse_stress', pivots=100)
 lay$module <- modules[lay$name, 'module']
 
 # make the plot with gggraph
+ggraph(lay) + 
+  geom_edge_link() + 
+  geom_node_point(aes(color=module)) +
+  geom_node_label(aes(label=name), repel=TRUE, max.overlaps=Inf, fontface='italic') +
+  scale_colour_manual(values=mod_cp)  
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggraph(lay) + 
   geom_edge_link() + 
   geom_node_point(aes(color=module)) +
   geom_node_label(aes(label=name), repel=TRUE, max.overlaps=Inf, fontface='italic') +
   scale_colour_manual(values=mod_cp)  
 
-
-
 png('figures/network_visualization/custom_net1.png', width=8, height=7, units='in', res=300)
 print(p)
 dev.off()
 
+pdf('figures/network_visualization/custom_net1.pdf', width=8, height=7)
+print(p)
+dev.off()
 ```
 
 <div class="figure" style="text-align: center">
@@ -952,6 +1074,15 @@ graph <- cur_TOM %>%
 V(graph)$module <- modules[V(graph)$name,'module']
 
 # make the plot with gggraph
+ggraph(graph) + 
+  geom_edge_link(aes(alpha=weight), color='grey') + 
+  geom_node_point(aes(color=module)) +
+  geom_node_label(aes(label=name), repel=TRUE, max.overlaps=Inf, fontface='italic') +
+  scale_colour_manual(values=mod_cp)  
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggraph(graph) + 
   geom_edge_link(aes(alpha=weight), color='grey') + 
   geom_node_point(aes(color=module)) +
@@ -960,7 +1091,9 @@ p <- ggraph(graph) +
 
 ggsave("figures/network_visualization/custom_net2.png", p, width=8, height=7)
 
+ggsave("figures/network_visualization/custom_net2.pdf", p, width=8, height=7)
 ```
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/custom_net2.png" alt="custom_net2" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 14.**</b> Custom network 2</p>
@@ -1043,6 +1176,16 @@ hub_genes <- GetHubGenes(seurat_obj, n_hubs=25) %>% .$gene_name
 V(graph)$hub <- ifelse(V(graph)$name %in% hub_genes, V(graph)$name, "")
 
 # make the plot with gggraph
+ggraph(graph) + 
+  geom_edge_link(aes(alpha=weight, color=edge_color)) + 
+  geom_node_point(aes(color=module)) +
+  geom_node_label(aes(label=hub), repel=TRUE, max.overlaps=Inf, fontface='italic') +
+  scale_colour_manual(values=mod_cp) +
+  scale_edge_colour_manual(values=mod_cp) 
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggraph(graph) + 
   geom_edge_link(aes(alpha=weight, color=edge_color)) + 
   geom_node_point(aes(color=module)) +
@@ -1051,9 +1194,9 @@ p <- ggraph(graph) +
   scale_edge_colour_manual(values=mod_cp) 
 
 ggsave("figures/network_visualization/custom_net3.png", p, width=8, height=7)
-
-
+ggsave("figures/network_visualization/custom_net3.pdf", p, width=8, height=7)
 ```
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/custom_net3.png" alt="custom_net3" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 15.**</b> Custom network 3</p>
@@ -1082,6 +1225,17 @@ hub_genes <- GetHubGenes(seurat_obj, n_hubs=25) %>% .$gene_name
 V(graph)$hub <- ifelse(V(graph)$name %in% hub_genes, V(graph)$name, "")
 
 # make the plot with gggraph
+ggraph(graph) + 
+  geom_edge_link(aes(alpha=weight, color=edge_color)) + 
+  geom_node_point(aes(color=module)) +
+  geom_node_label(aes(label=hub), repel=TRUE, max.overlaps=Inf, fontface='italic') +
+  scale_colour_manual(values=mod_cp) +
+  scale_edge_colour_manual(values=mod_cp) +
+  NoLegend()
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggraph(graph) + 
   geom_edge_link(aes(alpha=weight, color=edge_color)) + 
   geom_node_point(aes(color=module)) +
@@ -1091,8 +1245,10 @@ p <- ggraph(graph) +
   NoLegend()
 
 ggsave("figures/network_visualization/custom_net4.png", p, width=12, height=6)
-
+ggsave("figures/network_visualization/custom_net4.pdf", p, width=12, height=6)
 ```
+
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/custom_net4.png" alt="custom_net4" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 16.**</b> Custom network 4</p>
@@ -1208,10 +1364,21 @@ p6 <- ggraph(graph, layout=layout_in_circle(graph)) +
 
 
 # make a combined plot
+
+(p1 | p2 | p3) / (p4 | p5 | p6) 
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 png('figures/network_visualization/custom_net5.png', width=12, height=8, units='in', res=300)
 (p1 | p2 | p3) / (p4 | p5 | p6) 
 dev.off()
+
+png('figures/network_visualization/custom_net5.pdf', width=12, height=8)
+(p1 | p2 | p3) / (p4 | p5 | p6) 
+dev.off()
 ```
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/custom_net5.png" alt="custom_net5" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 17.**</b> Custom network 5</p>
@@ -1242,6 +1409,19 @@ rownames(umap_layout) <- 1:nrow(umap_layout)
 lay <- ggraph::create_layout(graph, umap_layout)
 lay$hub <- V(graph)$hub
 
+ggraph(lay) + 
+  geom_edge_link(aes(alpha=weight, color=edge_color)) +
+  geom_node_point(data=subset(lay, hub == ''), aes(color=module, size=kME)) + 
+  geom_node_point(data=subset(lay, hub != ''), aes(fill=module, size=kME), color='black', shape=21) +
+  scale_colour_manual(values=mod_cp) +
+  scale_fill_manual(values=mod_cp) +
+  scale_edge_colour_manual(values=mod_cp) +
+  geom_node_label(aes(label=hub), repel=TRUE, max.overlaps=Inf, fontface='italic') +
+  NoLegend()
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggraph(lay) + 
   geom_edge_link(aes(alpha=weight, color=edge_color)) +
   geom_node_point(data=subset(lay, hub == ''), aes(color=module, size=kME)) + 
@@ -1255,6 +1435,7 @@ p <- ggraph(lay) +
 
 ggsave("figures/network_visualization/custom_net_umap.png", p, width=6, height=6) 
 
+ggsave("figures/network_visualization/custom_net_umap.pdf", p, width=6, height=6) 
 ```
 
 <div class="figure" style="text-align: center">
@@ -1268,6 +1449,23 @@ better differentiate them from the background.
 
 ```{r eval=FALSE}
 
+ggraph(lay) + 
+  ggrastr::rasterise(
+    geom_point(inherit.aes=FALSE, data=umap_df, aes(x=UMAP1, y=UMAP2), color=umap_df$color, alpha=0.1, size=1),
+    dpi=500
+   ) +
+  geom_edge_link(aes(alpha=weight, color=edge_color)) +
+  geom_node_point(data=subset(lay, hub == ''), aes(fill=module, size=kME), color='black', shape=21) + 
+  geom_node_point(data=subset(lay, hub != ''), aes(fill=module, size=kME), color='black', shape=23) +
+  scale_colour_manual(values=mod_cp) +
+  scale_fill_manual(values=mod_cp) +
+  scale_edge_colour_manual(values=mod_cp) +
+  geom_node_label(aes(label=hub), repel=TRUE, max.overlaps=Inf, fontface='italic') +
+  NoLegend()
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p <- ggraph(lay) + 
   ggrastr::rasterise(
     geom_point(inherit.aes=FALSE, data=umap_df, aes(x=UMAP1, y=UMAP2), color=umap_df$color, alpha=0.1, size=1),
@@ -1282,7 +1480,9 @@ p <- ggraph(lay) +
   geom_node_label(aes(label=hub), repel=TRUE, max.overlaps=Inf, fontface='italic') +
   NoLegend()
 ggsave("figures/network_visualization/custom_net_umap2.png", p, width=6, height=6)
+ggsave("figures/network_visualization/custom_net_umap2.pdf", p, width=6, height=6)
 ```
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/custom_net_umap2.png" alt="custom_net_umap2" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 19.**</b> Custom network UMAP 2</p>
@@ -1319,9 +1519,16 @@ p <- p +
   annotate("text", x=Inf, y=Inf, label="Nervous system development", 
   vjust=2, hjust=1.1, color='white', fontface='bold', size=5)
 
-ggsave("figures/network_visualization/custom_net_umap3.png", p, width=6, height=6)
+p
 
 ```
+
+
+```{r, echo=FALSE, eval=FALSE}
+ggsave("figures/network_visualization/custom_net_umap3.png", p, width=6, height=6)
+ggsave("figures/network_visualization/custom_net_umap3.pdf", p, width=6, height=6)
+```
+
 <div class="figure" style="text-align: center">
 <img src="figures/network_visualization/custom_net_umap3.png" alt="custom_net_umap3" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 20.**</b> Custom network UMAP 3</p>
