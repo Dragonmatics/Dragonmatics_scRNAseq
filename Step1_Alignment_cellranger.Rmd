@@ -351,14 +351,14 @@ When running multiple samples that you intend to combine, you need a samplesheet
 **`samplesheet_cellranger.csv`**
 ```csv
 sample,fastq_path
-11C1_BPN1,/path/to/your/rawdata
-11C1_BPN2,/path/to/your/rawdata
-11C1_VEH1,/path/to/your/rawdata
-11C1_VEH2,/path/to/your/rawdata
-FXS_BPN1,/path/to/your/rawdata
-FXS_BPN2,/path/to/your/rawdata
-FXS_VEH1,/path/to/your/rawdata
-FXS_VEH2,/path/to/your/rawdata
+Control_1,/path/to/your/rawdata
+Control_2,/path/to/your/rawdata
+Control_3,/path/to/your/rawdata
+Control_4,/path/to/your/rawdata
+Case_1,/path/to/your/rawdata
+Case_2,/path/to/your/rawdata
+Case_3,/path/to/your/rawdata
+Case_4,/path/to/your/rawdata
 ```
 <br>
 
