@@ -378,6 +378,10 @@ p1 <- EnrichrDotPlot(
   scale_color_stepsn(colors=rev(viridis::magma(256))) +
   scale_size_continuous(range = c(5, 15))
 
+p1
+```
+
+```{r, echo=FALSE, eval=FALSE}
 ggsave(
   file.path(final_fig_dir, 'GO_dotplot.pdf'),
   p1,
@@ -391,8 +395,9 @@ ggsave(
   height = 10, 
   bg="white"
 )
-
 ```
+
+
 
 <div class="figure" style="text-align: center">
 <img src="hdWGCNA/results/figures/Go_dotplot.png" alt="Go_dotplot" style="width: 80%;"/>
@@ -527,6 +532,11 @@ p2 <- plotGseaTable(
     gseaParam=0.5,
     colwidths = c(10, 4, 1, 1, 1)
 )
+p2
+```
+
+```{r, echo=FALSE, eval=FALSE}
+
 ggsave(
   file.path(final_fig_dir, 'INH-M5_gsea_top25.pdf'),
   p2,
@@ -541,6 +551,7 @@ ggsave(
   bg="white"
 )
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="hdWGCNA/results/figures/INH-M5_gsea_top25.png" alt="INH-M5_gsea_top25" style="width: 80%;"/>
@@ -558,6 +569,10 @@ p3 <- plotEnrichment(
     ranks
 ) + labs(title=selected_pathway)
 
+p3
+```
+
+```{r, echo=FALSE, eval=FALSE}
 ggsave(
   file.path(final_fig_dir, 'INH-M5_gsea_selected.pdf'),
   p3,
@@ -572,6 +587,7 @@ ggsave(
   bg="white"
 )
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="hdWGCNA/results/figures/INH-M5_gsea_selected.png" alt="INH-M5_gsea_selected" style="width: 60%;"/>  
@@ -629,6 +645,11 @@ p4 <- plotGseaTable(
     gseaParam=0.5,
     colwidths = c(10, 4, 1, 1, 1)
 )
+
+p4
+```
+
+```{r, echo=FALSE, eval=FALSE}
 ggsave(
   file.path(final_fig_dir, 'INH-M5_gsea2_top25_2.pdf'),
   p3,
@@ -642,7 +663,6 @@ ggsave(
   height = 10, 
   bg="white"
 )
-
 ```
 
 <div class="figure" style="text-align: center">
