@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
   error = FALSE,
   comment = "#>",
   fig.align = "center",
-  out.width = "80%",
+  out.width = "90%",
   dpi = 300,
   cache = TRUE
 )
@@ -278,15 +278,9 @@ Next, we reduce the dimensionality of the data. However, unlike clustering, whic
 
 ```{r reduce-dimensionality}
 cds <- reduce_dimension(cds)
-p1 <- plot_cells(cds, label_groups_by_cluster=FALSE,  color_cells_by = "cell.type")
-ggsave("figures/monocle3_trajectory_umap.pdf", p1, width=12, height=10)
-ggsave("figures/monocle3_trajectory_umap.png", p1, width=12, height=10)
-```
+plot_cells(cds, label_groups_by_cluster=FALSE,  color_cells_by = "cell.type")
 
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_umap.png" alt="UMAP of C. elegans embryonic cells colored by cell type" style="width: 80%;"/>
-<p class="caption">**Figure 1:** UMAP of C. elegans embryonic cells colored by cell type</p>  
-</div>
+```
 
 As you can see, despite the fact that we are only looking at a small slice of this dataset, Monocle reconstructs a trajectory with numerous branches. Overlaying the manual annotations on the UMAP reveals that these branches are principally occupied by one cell type.
 
@@ -300,19 +294,12 @@ ciliated_genes <- c("che-1",
                     "ceh-36",
                     "ham-1")
 
-p2 <- plot_cells(cds,
+plot_cells(cds,
            genes=ciliated_genes,
            label_cell_groups=FALSE,
            show_trajectory_graph=FALSE)
-ggsave("figures/monocle3_trajectory_ciliated_genes.pdf", p2, width=12, height=10)
-ggsave("figures/monocle3_trajectory_ciliated_genes.png", p2, width=12, height=10)
+
 ```
-
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_ciliated_genes.png" alt="Expression of ciliated neuron genes along the trajectory" style="width: 80%;"/>
-<p class="caption">**Figure 2:** Expression of ciliated neuron genes along the trajectory</p>
-</div>
-
 
 
 We will learn how to identify the genes that are restricted to each outcome of the trajectory later on in the section *Finding genes that change as a function of pseudotime*.
@@ -324,16 +311,11 @@ Although cells may continuously transition from one state to the next with no di
 Monocle is able to learn when cells should be placed in the same trajectory as opposed to separate trajectories through its clustering procedure. Recall that we run `cluster_cells()`, each cell is assigned not only to a cluster but also to a partition. When you are learning trajectories, each partition will eventually become a separate trajectory. We run `cluster_cells()` as before.
 
 ```{r cluster-cells}
-cds <- cluster_cells(cds)
-p3 <- plot_cells(cds, color_cells_by = "partition")
-ggsave("figures/monocle3_trajectory_partitions.pdf", p3, width=12, height=10)
-ggsave("figures/monocle3_trajectory_partitions.png", p3, width=12, height=10)
-```
 
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_partitions.png" alt="UMAP of C. elegans embryonic cells colored by partition" style="width: 80%;"/>
-<p class="caption">**Figure 3:** UMAP of C. elegans embryonic cells colored by partition</p>
-</div>
+cds <- cluster_cells(cds)
+plot_cells(cds, color_cells_by = "partition")
+
+```
 
 ## 🕸️ Learn the trajectory graph
 
@@ -343,22 +325,13 @@ Next, we will fit a principal graph within each partition using the `learn_graph
 cds <- learn_graph(cds)
 ```
 ```{r plot-graph}
-p4 <- plot_cells(cds,
+plot_cells(cds,
            color_cells_by = "cell.type",
            label_groups_by_cluster=FALSE,
            label_leaves=FALSE,
            label_branch_points=FALSE)
 
-ggsave("figures/monocle3_trajectory_graph.pdf", p4, width=12, height=10)
-ggsave("figures/monocle3_trajectory_graph.png", p4, width=12, height=10)
-
 ```
-
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_graph.png" alt="UMAP of C. elegans embryonic cells with learned trajectory graph" style="width: 80%;"/>
-<p class="caption">**Figure 4:** UMAP of C. elegans embryonic cells with learned trajectory graph</p>
-</div>
-
 
 This graph will be used in many downstream steps, such as branch analysis and differential expression.
 
@@ -377,21 +350,15 @@ Once we've learned a graph, we are ready to order the cells according to their p
 In order to place the cells in order, we need to tell Monocle where the "beginning" of the biological process is. We do so by choosing regions of the graph that we mark as "roots" of the trajectory. In time series experiments, this can usually be accomplished by finding spots in the UMAP space that are occupied by cells from early time points:
 
 ```{r plot-time-bin}
-p5 <- plot_cells(cds,
+
+plot_cells(cds,
            color_cells_by = "embryo.time.bin",
            label_cell_groups=FALSE,
            label_leaves=TRUE,
            label_branch_points=TRUE,
            graph_label_size=1.5)
-ggsave("figures/monocle3_trajectory_time_bin.pdf", p5, width=12, height=10)
-ggsave("figures/monocle3_trajectory_time_bin.png", p5, width=12, height=10)
 
 ```
-
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_time_bin.png" alt="UMAP of C. elegans embryonic cells colored by embryo time bin" style="width: 80%;"/>
-<p class="caption">**Figure 5:** UMAP of C. elegans embryonic cells colored by embryo time bin</p>
-</div>
 
 The black lines show the structure of the graph. Note that the graph is not fully connected: cells in different partitions are in distinct components of the graph. The circles with numbers in them denote special points within the graph. Each leaf, denoted by light gray circles, corresponds to a different outcome (i.e. cell fate) of the trajectory. Black circles indicate branch nodes, in which cells can travel to one of several outcomes. You can control whether or not these are shown in the plot with the `label_leaves` and `label_branch_points` arguments to `plot_cells`. Please note that numbers within the circles are provided for reference purposes only.
 
@@ -421,7 +388,7 @@ In the above example, we just chose one location, but you could pick as many as 
 
 ```{r plot-pseudotime-interactive}
 
-p6 <- plot_cells(cds,
+plot_cells(cds,
            
            color_cells_by = "pseudotime",
            label_cell_groups=FALSE,
@@ -429,16 +396,7 @@ p6 <- plot_cells(cds,
            label_branch_points=FALSE,
            graph_label_size=1.5)
 
-ggsave("figures/monocle3_trajectory_pseudotime_interactive.pdf", p6, width=12, height=10)
-ggsave("figures/monocle3_trajectory_pseudotime_interactive.pnpg", p6, width=12, height=10)
-
 ```
-
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_pseudotime_interactive.png" alt="UMAP of C. elegans embryonic cells colored by pseudotime" style="width: 80%;"/>
-<p class="caption">**Figure 6:** UMAP of C. elegans embryonic cells colored by pseudotime</p>
-</div>
-  
 
 Note that some of the cells are gray. This means they have infinite pseudotime, because they were not reachable from the root nodes that were picked. In general, any cell on a partition that lacks a root node will be assigned an infinite pseudotime. In general, you should choose at least one root per partition.
 
@@ -464,23 +422,14 @@ cds <- order_cells(cds, root_pr_nodes=get_earliest_principal_node(cds))
 Passing the programatically selected root node to `order_cells()` via the `root_pr_nodes` argument yields:
 
 ```{r plot-pseudotime-programmatic}
-p7 <- plot_cells(cds,
+plot_cells(cds,
            color_cells_by = "pseudotime",
            label_cell_groups=FALSE,
            label_leaves=FALSE,
            label_branch_points=FALSE,
            graph_label_size=1.5)
 
-ggsave("figures/monocle3_trajectory_pseudotime_programmatic.pdf", p7, width=12, height=10)
-ggsave("figures/monocle3_trajectory_pseudotime_programmatic.png", p7, width=12, height=10)
-
 ```
-
-<div style="text-align: center;">
-<img src="figures/monocle3_trajectory_pseudotime_programmatic.png" alt="UMAP of C. elegans embryonic cells colored by pseudotime" style="width: 80%;"/>
-<p class="caption">**Figure 7:** UMAP of C. elegans embryonic cells colored by pseudotime</p>
-</div>
-
 
 Note that we could easily do this on a per-partition basis by first grouping the cells by partition using the `partitions()` function. This would result in all cells being assigned a finite pseudotime.
 
@@ -539,8 +488,9 @@ fig
 ```
 
 
-
-
-
+## SessionInfo
+```{r}
+sessionInfo()
+```
 
 ## References
