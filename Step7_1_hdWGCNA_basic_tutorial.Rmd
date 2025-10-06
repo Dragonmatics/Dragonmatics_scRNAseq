@@ -298,11 +298,19 @@ type just to check that we have loaded the data correctly, and to make sure that
 we have grouped cells into clusters and cell types.
 
 ```{r eval=FALSE}
+
+DimPlot(seurat_obj, group.by='cell_type', label=TRUE) +
+   umap_theme() + ggtitle('Zhou et al Control Cortex') + NoLegend()
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p1 <- DimPlot(seurat_obj, group.by='cell_type', label=TRUE) +
    umap_theme() + ggtitle('Zhou et al Control Cortex') + NoLegend()
 ggsave('figures/basic_tutorial/umap_celltype.pdf', p1, width=10, height=10)
 ggsave('figures/basic_tutorial/umap_celltype.png', p1, width=10, height=10, bg='white', dpi=300)
 ```
+
 <div class="figure" style="text-align: center">
 <img src="figures/basic_tutorial/umap_celltype.png" alt="umap_celltype" style="width: 80%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 1.**</b> Umap plot by celltype</p>
@@ -416,6 +424,11 @@ seurat_obj <- RunUMAPMetacells(seurat_obj, reduction='harmony', dims=1:15)
 p2 <- DimPlotMetacells(seurat_obj, group.by='cell_type') + umap_theme() + ggtitle("Cell Type")
 p3 <- DimPlotMetacells(seurat_obj, group.by='Sample') + umap_theme() + ggtitle("Sample")
 
+p2 + p3 + plot_layout(ncol=2)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p4 <- p2 + p3 + plot_layout(ncol=2)
 ggsave('figures/basic_tutorial/umap_metacells.pdf', p4, width=12, height=6)
 ggsave('figures/basic_tutorial/umap_metacells.png', p4, width=12, height=6, bg='white', dpi=300)
@@ -507,6 +520,11 @@ plot_list <- PlotSoftPowers(seurat_obj)
 
 
 # assemble with patchwork
+wrap_plots(plot_list, ncol=2)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 p5 <- wrap_plots(plot_list, ncol=2)
 ggsave('figures/basic_tutorial/softpower_ggplot.png', p5,  width=8, height=8, bg='white', dpi=300)
 ggsave('figures/basic_tutorial/softpower_ggplot.pdf', p5,  width=8, height=8)
@@ -574,7 +592,7 @@ indicates the co-expression module assignment.
 
 **Importantly, the "grey" module consists of genes that were not grouped into any co-expression module. The grey module should be ignored for all downstream analysis and interpretation.**
 
-```{r eval=FALSE}
+```{r, echo=FALSE, eval=FALSE}
 pdf('figures/basic_tutorial/inh_plotgendrogram.pdf', width=10, height=10)
 PlotDendrogram(seurat_obj, main='INH hdWGCNA Dendrogram')
 dev.off()
@@ -582,6 +600,11 @@ png('figures/basic_tutorial/inh_plotgendrogram.png', width=10, height=10, bg='wh
 PlotDendrogram(seurat_obj, main='INH hdWGCNA Dendrogram')
 dev.off()
 ```
+
+```{r, eval=FALSE}
+PlotDendrogram(seurat_obj, main='INH hdWGCNA Dendrogram')
+```
+
 <div class="figure" style="text-align: center">
 <img src="figures/basic_tutorial/inh_plotgendrogram.png" alt="inh_plotgendrogram" style="width: 80%;"/>
 <p class="caption" style="text-align: center;"><b>**Figure 4.**</b> Dendrogram of hdWGCNA modules in inhibitory neurons</p>
@@ -682,13 +705,18 @@ seurat_obj <- ResetModuleNames(
 
 We can visualize the genes in each module ranked by kME using the `PlotKMEs` function.
 
-```{r eval=FALSE}
+```{r, echo=FALSE, eval=FALSE}
 
 # plot genes ranked by kME for each module
 p6 <- PlotKMEs(seurat_obj, ncol=5)
 
 ggsave('figures/basic_tutorial/kME_distributions.pdf', p6, width=8, height=8)
 ggsave('figures/basic_tutorial/kME_distributions.png', p6, width=8, height=8, bg='white', dpi=300, units='in')
+```
+
+```{r, eval=FALSE}
+# plot genes ranked by kME for each module
+PlotDendrogram(seurat_obj, main='INH hdWGCNA Dendrogram')
 ```
 
 <div class="figure" style="text-align: center">
@@ -795,6 +823,11 @@ plot_list <- ModuleFeaturePlot(
 )
 
 # stitch together with patchwork
+wrap_plots(plot_list, ncol=6)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf('figures/basic_tutorial/ME_featureplot.pdf', width=12, height=12)
 wrap_plots(plot_list, ncol=6)
 dev.off()
@@ -802,6 +835,7 @@ png('figures/basic_tutorial/ME_featureplot.png', width=12, height=12, bg='white'
 wrap_plots(plot_list, ncol=6)
 dev.off()
 ```
+
 
 <div class="figure" style="text-align: center">
 <img src="figures/basic_tutorial/ME_featureplot.png" width="800" height="400">
@@ -822,6 +856,11 @@ plot_list <- ModuleFeaturePlot(
 )
 
 # stitch together with patchwork
+wrap_plots(plot_list, ncol=6)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf('figures/basic_tutorial/ME_featureplot_scores.pdf', width=12, height=12)
 wrap_plots(plot_list, ncol=6)
 dev.off()
@@ -829,6 +868,8 @@ png('figures/basic_tutorial/ME_featureplot_scores.png', width=12, height=12, bg=
 wrap_plots(plot_list, ncol=6)
 dev.off()
 ```
+
+
 
 <div class="figure" style="text-align: center">
 <img src="figures/basic_tutorial/ME_featureplot_scores.png" width="800" height="400">
@@ -843,6 +884,17 @@ visualize the expression of these modules in the INH subclusters.
 
 seurat_obj$cluster <- do.call(rbind, strsplit(as.character(seurat_obj$annotation), ' '))[,1]
 
+ModuleRadarPlot(
+  seurat_obj,
+  group.by = 'cluster',
+  barcodes = seurat_obj@meta.data %>% subset(cell_type == 'INH') %>% rownames(),
+  axis.label.size=4,
+  grid.label.size=4
+)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf('figures/basic_tutorial/ggradar_avg.pdf', width=10, height=10)
 ModuleRadarPlot(
   seurat_obj,
@@ -862,8 +914,9 @@ ModuleRadarPlot(
   grid.label.size=4
 )
 dev.off()
-
 ```
+
+
 
 <div class="figure" style="text-align: center">
 <img src="figures/basic_tutorial/ggradar_avg.png" style="width: 80%;"/>
@@ -882,6 +935,11 @@ hdWGCNA includes the `ModuleCorrelogram` function to visualize the correlation b
 ```{r eval=FALSE}
 
 # plot module correlagram
+ModuleCorrelogram(seurat_obj)
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
 pdf('figures/basic_tutorial/ME_correlogram.pdf', width=8, height=8)
 ModuleCorrelogram(seurat_obj)
 dev.off()
@@ -889,7 +947,6 @@ dev.off()
 png('figures/basic_tutorial/ME_correlogram.png', width=8, height=8, bg='white', res=300, units='in')
 ModuleCorrelogram(seurat_obj)
 dev.off()
-
 ```
 
 <div class="figure" style="text-align: center">
@@ -932,6 +989,10 @@ p7 <- p7 +
   RotatedAxis() +
   scale_color_gradient2(high='red', mid='grey95', low='blue')
 
+p7
+```
+
+```{r, echo=FALSE, eval=FALSE}
 # plot output
 ggsave('figures/basic_tutorial/ME_dotplot.pdf', p7, width=10, height=10)
 ggsave('figures/basic_tutorial/ME_dotplot.png', p7, width=10, height=10, bg='white', dpi=300)
@@ -993,5 +1054,11 @@ For researchers pursuing deeper mechanistic insights, we provide specialized tut
 For those interested in alternative methodological approaches:
 
 * [Pseudobulk-based hdWGCNA Analysis](pseudobulk.html) - Implementation using pseudobulk replicates instead of metacells
+
+
+# SessionInfo
+```{r}
+sessionInfo()
+```
 
 # 📚 References
