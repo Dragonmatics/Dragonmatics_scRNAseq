@@ -1,0 +1,842 @@
+---
+title: "RNA velocity analysis with scVelo"
+author: "Hongchen Xiao"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    code_folding: show
+    theme: cosmo
+    highlight: tango
+    df_print: paged
+    fig_caption: true
+    self_contained: true
+---
+
+
+```{r setup, include=FALSE}
+
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  error = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "90%",
+  dpi = 300,
+  cache = TRUE,
+  fig.width = 10,
+  fig.height = 7,
+  dev = "png",
+  dev.args = list(bg = "transparent"),
+  fig.retina = 2,
+  fig.showtext = TRUE,
+  results = "hold"
+)
+
+# Set general options
+options(
+  digits = 3,
+  width = 120,
+  scipen = 999,
+  knitr.kable.NA = "",
+  knitr.table.format = "html"
+)
+
+# Load required packages silently
+suppressPackageStartupMessages({
+  library(knitr)
+  library(kableExtra)
+  library(htmltools)
+})
+```
+
+
+```{css, echo=FALSE}
+
+/* Enhanced Custom CSS styling */
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.8;
+  color: #2c3e50;
+  max-width: 1200px;
+  margin: auto;
+  padding: 1em;
+  background-color: #ffffff;
+}
+
+h1, h2, h3, h4 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-top: 2em;
+  border-bottom: 2px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.title {
+  color: #2c3e50;
+  text-align: center;
+  font-size: 2.8em;
+  margin-bottom: 1em;
+  font-weight: 700;
+  border-bottom: none;
+}
+
+.author, .date {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 1.2em;
+  margin-bottom: 2em;
+}
+
+/* Code chunks styling */
+pre {
+  border-radius: 4px;
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+  padding: 1em;
+}
+
+code {
+  color: #c0392b;
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+pre.r:before {
+  content: "R Script";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+pre.python:before {
+  content: "Python Script\n";
+  display: block; /* Make the label appear on its own line */
+  font-weight: bold;
+  color: #555;
+  background-color: #eee;
+  padding: 5px
+}
+
+
+/* Table of contents styling */
+#TOC {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e9ecef;
+}
+
+.toc-content {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+/* Figure styling */
+.figure {
+  margin: 2em 0;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.caption {
+  margin-top: 0.5em;
+  color: #666;
+  font-style: italic;
+}
+
+/* Tables styling */
+table {
+  width: 100%;
+  margin-bottom: 1em;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+thead {
+  background-color: #f8f9fa;
+}
+
+th, td {
+  padding: 8px;
+  border: 1px solid #dee2e6;
+}
+
+/* Button styling */
+.btn-code-chunk {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* Links styling */
+a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Blockquote styling */
+blockquote {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 4px solid #e9ecef;
+  color: #6c757d;
+}
+```
+
+# Introduction
+
+This comprehensive tutorial demonstrates the implementation of RNA velocity analysis using scVelo, a state-of-the-art Python package for single-cell RNA sequencing (scRNA-seq) data analysis. Published in Nature Biotechnology (2020), scVelo represents a significant advancement in transcriptional dynamics analysis, building upon and enhancing the foundational RNA velocity framework while addressing limitations of its predecessor, velocyto.
+
+RNA velocity analysis employs sophisticated mathematical modeling of transcriptional kinetics to unveil cellular dynamics that traditional scRNA-seq approaches cannot directly capture. This powerful methodology enables researchers to:
+1. Determine the transcriptional state of genes (induction or repression) within specific cell populations
+2. Predict cellular trajectories and fate decisions through pseudotime analysis
+3. Reconstruct developmental hierarchies with unprecedented temporal resolution
+
+By leveraging the analytical capabilities of scVelo, we can gain deep insights into cellular differentiation processes, developmental trajectories, and dynamic gene regulation in complex biological systems.
+
+This tutorial integrates best practices from the official scVelo documentation while incorporating advanced analytical approaches for comprehensive single-cell analysis.
+
+
+# Load libraries
+
+```{r, libraries, , class.source="r", eval=FALSE}
+
+library(CellChat)
+library(Seurat)
+library(reticulate)
+library(tidyverse)
+library(svglite)
+library(patchwork)
+library(ggalluvial)
+library(NMF)
+
+set.seed(12345)
+
+options(stringsAsFactors = FALSE)
+
+reticulate::use_python("C:/Python313/python.exe", required=T)
+
+# setwd("D:/Data_Analysis_Practice_2025/scRNAseq/scRNAseq_Analysis_templates")
+```
+
+
+# Data Format Conversion: Seurat to AnnData Integration
+
+Our analysis begins with a curated mouse brain dataset encompassing both disease and control samples. The initial data processing pipeline, executed in R using the Seurat framework, included:
+- Quality control and cell filtering
+- Data normalization and scaling
+- Dimensionality reduction
+- Batch effect correction
+- Unsupervised clustering analysis
+
+A critical step in our workflow involves converting the processed Seurat object to AnnData format, the primary data structure utilized by scVelo. While the SeuratDisk package offers direct conversion capabilities, we implement a more robust custom conversion pipeline to ensure data integrity and compatibility. This approach provides greater control over the transfer of key analytical components between the two frameworks.
+
+## assuming that you have some Seurat object called seurat_obj:
+
+```{r convert data, , class.source="r", eval=FALSE}
+
+# save metadata table:
+seurat_obj$barcode <- colnames(seurat_obj)
+seurat_obj$UMAP_1 <- seurat_obj@reductions$umap@cell.embeddings[,1]
+seurat_obj$UMAP_2 <- seurat_obj@reductions$umap@cell.embeddings[,2]
+write.csv(seurat_obj@meta.data, file='metadata.csv', quote=F, row.names=F)
+
+# write expression counts matrix
+library(Matrix)
+counts_matrix <- GetAssayData(seurat_obj, assay='RNA', slot='counts')
+writeMM(counts_matrix, file=paste0(out_data_dir, 'counts.mtx'))
+
+# write dimesnionality reduction matrix, in this example case pca matrix
+write.csv(seurat_obj@reductions$pca@cell.embeddings, file='pca.csv', quote=F, row.names=F)
+
+# write gene names
+write.table(
+  data.frame('gene'=rownames(counts_matrix)),file='gene_names.csv',
+  quote=F,row.names=F,col.names=F
+)
+```
+
+## write expression counts matrix:
+
+```{python prepare-mydata, eval=FALSE}
+
+import scanpy as sc
+import anndata
+from scipy import io
+from scipy.sparse import coo_matrix, csr_matrix
+import numpy as np
+import os
+import pandas as pd
+
+# load sparse matrix:
+X = io.mmread("counts.mtx")
+
+# create anndata object
+adata = anndata.AnnData(
+    X=X.transpose().tocsr()
+)
+
+# load cell metadata:
+cell_meta = pd.read_csv("count/metadata.csv")
+
+# load gene names:
+with open("gene_names.csv", 'r') as f:
+    gene_names = f.read().splitlines()
+
+# set anndata observations and index obs by barcodes, var by gene names
+adata.obs = cell_meta
+adata.obs.index = adata.obs['count/barcode']
+adata.var.index = gene_names
+
+# load dimensional reduction:
+pca = pd.read_csv("count/pca.csv")
+pca.index = adata.obs.index
+
+# set pca and umap
+adata.obsm['X_pca'] = pca.to_numpy()
+adata.obsm['X_umap'] = np.vstack((adata.obs['UMAP_1'].to_numpy(), adata.obs['UMAP_2'].to_numpy())).T
+
+# plot a UMAP colored by sampleID to test:
+sc.pl.umap(adata, color=['SampleID'], frameon=False, save=True)
+
+# save dataset as anndata format
+adata.write('my_data.h5ad')
+
+# reload dataset
+adata = sc.read_h5ad('my_data.h5ad')
+```
+
+# Generation of Spliced and Unspliced Count Matrices
+
+RNA velocity analysis requires the distinction between spliced and unspliced transcripts, necessitating a specialized quantification approach beyond traditional UMI-based count matrices. This section details the construction of these distinct matrices using the velocyto command-line interface (CLI).
+
+While both velocyto and Kallisto-Bustools are capable of generating these specialized matrices, we implement velocyto due to its:
+1. Robust integration with Cell Ranger outputs
+2. Flexible compatibility with diverse single-cell platforms
+3. Established track record in RNA velocity analysis
+
+The velocyto CLI offers seamless processing of:
+- Direct Cell Ranger output directories
+- Generic BAM files from any single-cell platform
+- Species-specific annotations (utilizing mm10 reference in this implementation)
+- Optional repeat masking for enhanced accuracy (recommended for optimal results)
+
+This approach ensures accurate quantification of splicing states, crucial for downstream velocity calculations.
+```{bash, eval=FALSE}
+#!/bin/bash
+
+#SBATCH --job-name=velocyto_run
+#SBATCH --nodes=1
+#SBATCH --ntasks=10
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=240G
+#SBATCH --time=24:00:00
+#SBATCH --output=./SLURM_OUT/%x_%A_%a.out 
+#SBATCH --error=./SLURM_OUT/%x_%A_%a.err 
+
+transcriptome="/refdata-gex-GRCh38-2024-A/genes/genes.gtf"
+BARCODES="/filtered_feature_bc_matrix/barcodes.tsv"
+BAMFILE="/possorted_genome_bam.bam"
+
+velocyto run -b $BARCODES -o ./velocyto $BAMFILE $transcriptome
+```
+
+# Load data
+
+Now that we have our input data properly formatted, we can load it into python. Velocyto created a separate spliced and unspliced matrix for each sample, so we first have to merge the different samples into one object. Additionally, I am reformatting the cell barcodes to match my anndata object with the full genes-by-cells data.
+```{python, import-modules, class.source="python", eval=FALSE}
+
+import scvelo as scv
+import scanpy as sc
+import cellrank as cr
+import numpy as np
+import pandas as pd
+import anndata as ad
+```
+
+```{python, Setting Parameters,  class.source="python", eval=FALSE}
+
+scv.settings.verbosity = 3
+scv.settings.set_figure_params('scvelo', facecolor='white', dpi=100, frameon=False)
+cr.settings.verbosity = 2
+
+adata = sc.read_h5ad('count/my_data.h5ad')
+```
+
+## load loom files 
+```{python load-loom-files,  class.source="python", eval=FALSE}
+
+ldata_control_1 = sc.read('count/possorted_genome_bam_control_1.loom', cache=True)
+ldata_control_2 = sc.read('count/possorted_genome_bam_control_2.loom', cache=True)
+ldata_control_3 = sc.read('count/possorted_genome_bam_control_3.loom', cache=True)
+ldata_control_4 = sc.read('count/possorted_genome_bam_control_4.loom', cache=True)
+ldata_case_1 = sc.read('count/possorted_genome_bam_case_1.loom', cache=True)
+ldata_case_2 = sc.read('count/possorted_genome_bam_case_2.loom', cache=True)
+ldata_case_3 = sc.read('count/possorted_genome_bam_case_3.loom', cache=True)
+ldata_case_4 = sc.read('count/possorted_genome_bam_case_4.loom', cache=True)
+
+# rename barcodes in order to  merge
+barcodes = [bc.split(':')[1] for bc in ldata_control_1.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_1' for bc in barcodes]
+ldata_control_1.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_control_2.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_3' for bc in barcodes]
+ldata_control_2.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_control_3.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_4' for bc in barcodes]
+ldata_control_3.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_control_4.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_7' for bc in barcodes]
+ldata_control_4.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_case_1.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_2' for bc in barcodes]
+ldata_case_1.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_case_2.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_5' for bc in barcodes]
+ldata_case_2.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_case_3.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_6' for bc in barcodes]
+ldata_case_3.obs.index = barcodes
+
+barcodes = [bc.split(':')[1] for bc in ldata_case_4.obs.index.tolist()]
+barcodes = [bc[0:len(bc)-1] + '_8' for bc in barcodes]
+ldata_case_4.obs.index = barcodes
+
+# make variable names unique
+ldata_control_1.var_names_make_unique()
+ldata_control_2.var_names_make_unique()
+ldata_control_3.var_names_make_unique()
+ldata_control_4.var_names_make_unique()
+ldata_case_1.var_names_make_unique()
+ldata_case_2.var_names_make_unique()
+ldata_case_3.var_names_make_unique()
+ldata_case_4.var_names_make_unique()
+
+# concatenate the eight loom files
+ldata = ldata_control_1.concatenate([ldata_control_2, ldata_control_3, ldata_control_4, ldata_case_1, ldata_case_2, ldata_case_3, ldata_case_4])
+
+# merge matrices into the original adata object
+adata = scv.utils.merge(adata, ldata)
+adata.write('count/merged_data.h5ad')
+adata = sc.read_h5ad('count/merged_data.h5ad')
+print(adata)
+```
+
+
+## plot umap to check
+
+```{python umap-plot,  class.source="python", eval=FALSE}
+adata = scv.datasets.pancreas()
+sc.pl.umap(adata, color='clusters', frameon=False, legend_loc='on data', title='', save='_clusters.pdf')
+
+```
+```{r, eval=FALSE, echo=FALSE}
+
+library(pdftools)
+pdf_convert(pdf = "figures/umap_clusters.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/umap_clusters.png", dpi = 300)
+```
+
+<div class="figure" style="text-align: center">
+<img src="figures/umap_annotated_celltypes.jpg" alt="umap_annotated_celltypes" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 1.</b> umap_annotated_celltypes</p>
+</div>
+
+# RNA Velocity Computation and Model Implementation
+
+With our data properly structured, we proceed to the core analytical phase: RNA velocity computation using scVelo's sophisticated modeling framework. The package offers two distinct mathematical approaches:
+
+1. **Steady-State Model** (2018):
+   - Based on the original RNA velocity framework
+   - Assumes constant transcriptional regulation
+   - Suitable for stable cellular states
+
+2. **Dynamical Model** (2020):
+   - Incorporates temporal gene regulation changes
+   - Accounts for transient cellular states
+   - Provides enhanced resolution of developmental dynamics
+
+Our analysis pipeline begins with a thorough inspection of transcriptional states across cell clusters, followed by rigorous preprocessing steps. Initially, we implement the steady-state model with stochastic optimization to establish baseline velocity estimates.
+
+```{python proportion-plot,  class.source="python", eval=FALSE}
+
+scv.pl.proportions(adata, groupby='clusters',save='figures/proportions.pdf')
+```
+```{r, eval=FALSE, echo=FALSE}
+
+pdf_convert(pdf = "figures/proportions.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/proportions.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/proportions.png" alt="proportions" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 2.</b> proportions</p>
+</div>
+
+
+## pre-process
+```{python pre-process,  class.source="python", eval=FALSE}
+
+scv.pp.filter_and_normalize(adata)
+scv.pp.moments(adata)
+```
+
+## compute velocity
+```{python compute-velo,  class.source="python", eval=FALSE}
+
+scv.tl.velocity(adata, mode='stochastic')
+scv.tl.velocity_graph(adata)
+adata.write('count/after_computing_velocity_merged_data.h5ad')
+adata = sc.read_h5ad('count/after_computing_velocity_merged_data.h5ad')
+```
+
+
+# Visualization of RNA Velocity Vector Fields
+
+The complex dynamics of cellular transcriptional states can be elegantly visualized through RNA velocity vector fields. By projecting velocity vectors onto two-dimensional embeddings (typically UMAP or t-SNE), we can observe:
+- Directional trends in gene expression changes
+- Potential developmental trajectories
+- Transition states between cell populations
+- Local and global patterns of transcriptional dynamics
+
+These visualizations integrate velocity information across all genes and cells, providing a comprehensive view of cellular dynamics in the reduced dimensional space.
+```{python visualization,  class.source="python", eval=FALSE}
+
+scv.pl.velocity_embedding(adata, basis='umap', frameon=False, save='embedding.pdf')
+```
+```{r, eval=FALSE, echo=FALSE}
+
+pdf_convert(pdf = "figures/scvelo_embedding.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_embedding.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_embedding.png" alt="scvelo_embedding" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 3.</b> scvelo_embedding</p>
+</div>
+
+
+```{python embedding_grid,  class.source="python", eval=FALSE}
+
+scv.pl.velocity_embedding_grid(adata, basis='umap', color='clusters', save='embedding_grid.pdf', title='', scale=0.25)
+```
+```{r, eval=FALSE, echo=FALSE}
+
+pdf_convert(pdf = "figures/scvelo_embedding_grid.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_embedding_grid.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_embedding_grid.png" alt="scvelo_embedding_grid" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 4.</b> scvelo_embedding_grid</p>
+</div>
+
+
+```{python embedding_stream,  class.source="python", eval=FALSE}
+
+scv.pl.velocity_embedding_stream(adata, basis='umap', color=['clusters'], save='embedding_stream.pdf', title='')
+```
+```{r, eval=FALSE, echo=FALSE}
+
+pdf_convert(pdf = "figures/scvelo_embedding_stream.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_embedding_stream.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_embedding_stream.png" alt="scvelo_embedding_stream" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 5.</b> scvelo_embedding_stream</p>
+</div>
+
+## plot velocity of a selected gene
+```{python velocity-plot,  class.source="python", eval=FALSE}
+
+scv.pl.velocity(adata, var_names=['Xkr4'], color='clusters', save='Xkr4_stream.pdf')
+```
+```{r, eval=FALSE, echo=FALSE}
+
+pdf_convert(pdf = "figures/scvelo_Xkr4_stream.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_Xkr4_stream.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_Xkr4_stream.png" alt="scvelo_SLC17A6_stream" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 6.</b> scvelo_SLC17A6_stream</p>
+</div>
+
+# Advanced Downstream Analysis
+
+The RNA velocity framework enables sophisticated downstream analyses to extract biological insights from transcriptional dynamics. Our analytical pipeline encompasses:
+
+1. **Dynamic Gene Identification**:
+   - Detection of genes with significant velocity patterns
+   - Ranking of genes by their dynamic behavior
+   - Assessment of transcriptional regulation strength
+
+2. **Velocity Coherence Analysis**:
+   - Quantification of coordinated transcriptional changes
+   - Evaluation of local cell-state transitions
+   - Identification of developmental decision points
+
+3. **Trajectory Analysis**:
+   - Pseudotime inference from velocity patterns
+   - Reconstruction of developmental hierarchies
+   - Prediction of cell-fate determinants
+
+4. **Graph-based Topology**:
+   - Implementation of partition-based graph abstraction (PAGA)
+   - Orientation of cellular hierarchies
+   - Mapping of lineage relationships
+
+These analyses collectively provide a comprehensive understanding of cellular dynamics and developmental trajectories.
+
+```{python rank-velocity,  class.source="python", eval=FALSE}
+
+scv.tl.rank_velocity_genes(adata, groupby='clusters', min_corr=.3)
+
+# scv.DataFrame was removed in the past. Please use pandas.DataFrame, instead.
+df = pd.DataFrame(adata.uns['rank_velocity_genes']['names'])
+df.head()
+df.to_csv('count/rank_velocity_pancrea_genes.csv', index=False) 
+df = pd.read_csv('count/rank_velocity_pancrea_genes.csv')
+
+kwargs = dict(frameon=False, size=10, linewidth=1.5,
+              add_outline='Ngn3 low EP, Ngn3 high EP')
+
+scv.pl.scatter(adata, df['Ngn3 low EP'][:3], ylabel='Ngn3 low EP', frameon=False, color='clusters', size=10, linewidth=1.5, save="Ngn3 low EP_scatter.pdf")
+```
+
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_Ngn3 low EP_scatter.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_Ngn3 low EP_scatter.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_Ngn3 low EP_scatter.png" alt="excitatory_neurons_scatter" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 7.</b> excitatory_neurons_scatter</p>
+</div>
+
+```{python,  class.source="python", eval=FALSE}
+
+scv.pl.scatter(adata, df['Ngn3 high EP'][:3], ylabel='Ngn3 high EP', frameon=False, color='clusters', size=10, linewidth=1.5, save="Ngn3 high EP_scatter.pdf")
+```
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_Ngn3 high EP_scatter.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_rNgn3 high EP_scatter.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_rNgn3 high EP_scatter.png" alt="scvelo_radial_glia_scatter" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 8.</b> scvelo_radial_glia_scatter</p>
+</div>
+
+
+```{python velo-confid,  class.source="python", eval=FALSE}
+
+scv.tl.velocity_confidence(adata)
+keys = 'velocity_length', 'velocity_confidence'
+scv.pl.scatter(adata, c=keys, cmap='coolwarm', perc=[5, 95], save="velocity_confidence.pdf")
+```
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_velocity_confidence.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_velocity_confidence.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_velocity_confidence.png" alt="scvelo_velocity_confidence" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 9.</b> scvelo_velocity_confidence</p>
+</div>
+
+
+```{python velo-graph,  class.source="python", eval=FALSE}
+
+scv.pl.velocity_graph(adata, threshold=.1, color='clusters', save="velocity_graph.pdf")
+```
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_velocity_graph.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_velocity_graph.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_velocity_graph.png" alt="scvelo_velocity_graph" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 10.</b> scvelo_velocity_graph</p>
+</div>
+
+
+```{python scatter-plot,  class.source="python", eval=FALSE}
+
+x, y = scv.utils.get_cell_transitions(adata, basis='umap', starting_cell=70)
+ax = scv.pl.velocity_graph(adata, c='lightgrey', edge_width=.05, show=False, save="velocity_graph_lightgrey.pdf")
+ax = scv.pl.scatter(adata, x=x, y=y, s=120, c='ascending', cmap='gnuplot', ax=ax, save="scv_pl_scatter.pdf")
+```
+
+
+
+```{python pseudotime,  class.source="python", eval=FALSE}
+
+scv.tl.velocity_pseudotime(adata)
+scv.pl.scatter(adata, color='velocity_pseudotime', cmap='gnuplot', save="velocity_pseudotime.pdf")
+```
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_velocity_pseudotime.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_velocity_pseudotime.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_velocity_pseudotime.png" alt="scvelo_velocity_pseudotime" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 11.</b> scvelo_velocity_pseudotime</p>
+</div>
+
+
+```{python ,  class.source="python", eval=FALSE}
+
+adata.uns['neighbors']['distances'] = adata.obsp['distances']
+adata.uns['neighbors']['connectivities'] = adata.obsp['connectivities']
+```
+
+
+```{python paga,  class.source="python", eval=FALSE}
+
+# Assume `adata` has been preprocessed (e.g., normalized, scaled, PCA)
+sc.pp.neighbors(adata)
+sc.tl.leiden(adata, key_added='clusters')
+
+
+scv.tl.paga(adata, groups='clusters')
+df = scv.get_df(adata, 'paga/transitions_confidence', precision=2).T
+#df.style.background_gradient(cmap='Blues').format('{:.2g}')
+
+scv.pl.paga(adata, basis='umap', size=50, alpha=.1,
+            min_edge_width=2, node_size_scale=1.5)
+```
+
+
+# Lineage-Specific Velocity Analysis
+
+When analyzing complex tissues with multiple distinct cellular lineages, a targeted approach focusing on specific cell populations can reveal nuanced biological insights that might be obscured in global analysis. In this section, we demonstrate:
+
+1. **Population-Specific Analysis**:
+   - Isolation of neuronal lineage clusters
+   - Focused examination of developmental trajectories
+   - Enhanced resolution of lineage-specific dynamics
+
+2. **Advanced Modeling Implementation**:
+   - Transition from steady-state to dynamical modeling
+   - Integration of temporal gene regulation
+   - Improved capture of transient states
+
+This refined approach enables deeper insights into lineage-specific developmental programs and cellular state transitions.
+```{python,  class.source="python", eval=FALSE}
+cur_celltypes = ['Ductal', 'Ngn3 low EP', 'Ngn3 high EP', 'Pre-endocrine', 'Beta', 'Alpha', 'Delta', 'Epsilon']
+adata_subset = adata[adata.obs['clusters_coarse'].isin(cur_celltypes)]
+
+sc.pl.umap(adata_subset, color=['clusters'], frameon=False, title=['', ''])
+
+sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep='X_pca')
+```
+
+# pre-process
+```{python dynamical,  class.source="python", eval=FALSE}
+
+scv.pp.filter_and_normalize(adata_subset)
+scv.pp.moments(adata_subset)
+
+
+scv.tl.recover_dynamics(adata_subset)
+
+scv.tl.velocity(adata_subset, mode='dynamical')
+scv.tl.velocity_graph(adata_subset)
+
+scv.pl.velocity_embedding_stream(adata_subset, basis='umap', color=['clusters'], save='embedding_stream.pdf', title='')
+```
+
+
+```{python dynamic-2,  class.source="python", eval=FALSE}
+
+df = adata_subset.var
+df = df[(df['fit_likelihood'] > .1) & df['velocity_genes'] == True]
+
+kwargs = dict(xscale='log', fontsize=16)
+with scv.GridSpec(ncols=3) as pl:
+    pl.hist(df['fit_alpha'], xlabel='transcription rate', **kwargs)
+    pl.hist(df['fit_beta'] * df['fit_scaling'], xlabel='splicing rate', xticks=[.1, .4, 1], **kwargs)
+    pl.hist(df['fit_gamma'], xlabel='degradation rate', xticks=[.1, .4, 1], **kwargs)
+
+scv.get_df(adata_subset, 'fit*', dropna=True).head()
+
+scv.tl.latent_time(adata_subset)
+scv.pl.scatter(adata_subset, color='latent_time', color_map='gnuplot', size=80)
+```
+
+```{python,  class.source="python", eval=FALSE}
+top_genes = adata_subset.var['fit_likelihood'].sort_values(ascending=False).index[:300]
+scv.pl.heatmap(adata_subset, var_names=top_genes, sortby='latent_time', col_color='clusters', n_convolve=100)
+
+top_genes = adata_subset.var['fit_likelihood'].sort_values(ascending=False).index
+scv.pl.scatter(adata_subset, color='clusters', basis=top_genes[:15], ncols=5, frameon=False)
+
+var_names = ['MTUS2', 'PPFIA2', 'NMNAT2']
+scv.pl.scatter(adata_subset, var_names, color='clusters', frameon=False)
+scv.pl.scatter(adata_subset, x='latent_time', y=var_names, color='clusters', frameon=False)
+```
+
+# Conclusions and Future Perspectives
+
+This comprehensive tutorial has demonstrated the power and versatility of RNA velocity analysis in single-cell transcriptomics using scVelo. We have explored:
+
+1. **Core Analytical Capabilities**:
+   - Implementation of steady-state and dynamical velocity models
+   - Identification of cell-state transitions
+   - Detection of dynamically regulated genes
+   - Reconstruction of developmental trajectories
+
+2. **Advanced Applications**:
+   - Lineage-specific analysis
+   - Pseudotime inference
+   - Vector field visualization
+   - Graph-based trajectory analysis
+
+3. **Future Directions**:
+   - Integration with CellRank for enhanced fate mapping
+   - Multi-modal data integration possibilities
+   - Advanced trajectory inference methods
+   - Novel biological insight generation
+
+As single-cell technologies continue to evolve, RNA velocity analysis stands as a fundamental tool for understanding cellular dynamics and developmental processes. The integration of these approaches with emerging computational methods promises to further enhance our understanding of complex biological systems.
+
+
+
+
+
+
+
+
+
+
