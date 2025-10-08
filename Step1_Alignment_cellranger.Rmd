@@ -236,7 +236,7 @@ This comprehensive guide walks you through the crucial upstream analysis of sing
 3. Barcode counting
 4. UMI (Unique Molecular Identifier) counting
 
-The end result? A clean, organized feature-barcode matrix ready for your downstream analysis.
+The end result is a clean, organized feature-barcode matrix ready for your downstream analysis.
 :::
 
 This foundational step is essential before moving on to more advanced analyses using popular tools like Seurat or Scanpy. Think of it as preparing your raw ingredients before cooking a gourmet meal - the quality of your preparation directly impacts your final results.
