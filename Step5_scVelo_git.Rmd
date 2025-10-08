@@ -1,6 +1,6 @@
 ---
-title: "RNA velocity analysis with scVelo"
-author: "Hongchen Xiao"
+title: "🚄 RNA velocity analysis with scVelo 🔬 "
+author: "🧑‍🔬Hongchen Xiao"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output: 
   html_document:
@@ -204,7 +204,7 @@ blockquote {
 }
 ```
 
-# Introduction
+# 📖 Introduction
 
 This comprehensive tutorial demonstrates the implementation of RNA velocity analysis using scVelo, a state-of-the-art Python package for single-cell RNA sequencing (scRNA-seq) data analysis. Published in Nature Biotechnology (2020), scVelo represents a significant advancement in transcriptional dynamics analysis, building upon and enhancing the foundational RNA velocity framework while addressing limitations of its predecessor, velocyto.
 
@@ -218,7 +218,7 @@ By leveraging the analytical capabilities of scVelo, we can gain deep insights i
 This tutorial integrates best practices from the official scVelo documentation while incorporating advanced analytical approaches for comprehensive single-cell analysis.
 
 
-# Load libraries
+# ♎ Load libraries
 
 ```{r, libraries, , class.source="r", eval=FALSE}
 
@@ -235,13 +235,14 @@ set.seed(12345)
 
 options(stringsAsFactors = FALSE)
 
-reticulate::use_python("C:/Python313/python.exe", required=T)
+reticulate::use_python("C:/Users/jwang/AppData/Local/Programs/Python/Python313/python.exe", required=T)
 
 # setwd("D:/Data_Analysis_Practice_2025/scRNAseq/scRNAseq_Analysis_templates")
 ```
 
 
-# Data Format Conversion: Seurat to AnnData Integration
+# 🔃 Data Format Conversion: Seurat to AnnData Integration
+
 
 Our analysis begins with a curated mouse brain dataset encompassing both disease and control samples. The initial data processing pipeline, executed in R using the Seurat framework, included:
 - Quality control and cell filtering
@@ -327,7 +328,7 @@ adata.write('my_data.h5ad')
 adata = sc.read_h5ad('my_data.h5ad')
 ```
 
-# Generation of Spliced and Unspliced Count Matrices
+# 🥅 Generation of Spliced and Unspliced Count Matrices
 
 RNA velocity analysis requires the distinction between spliced and unspliced transcripts, necessitating a specialized quantification approach beyond traditional UMI-based count matrices. This section details the construction of these distinct matrices using the velocyto command-line interface (CLI).
 
@@ -362,7 +363,8 @@ BAMFILE="/possorted_genome_bam.bam"
 velocyto run -b $BARCODES -o ./velocyto $BAMFILE $transcriptome
 ```
 
-# Load data
+# ⬆️ Load data
+
 
 Now that we have our input data properly formatted, we can load it into python. Velocyto created a separate spliced and unspliced matrix for each sample, so we first have to merge the different samples into one object. Additionally, I am reformatting the cell barcodes to match my anndata object with the full genes-by-cells data.
 ```{python, import-modules, class.source="python", eval=FALSE}
@@ -466,11 +468,11 @@ pdf_convert(pdf = "figures/umap_clusters.pdf",
 ```
 
 <div class="figure" style="text-align: center">
-<img src="figures/umap_annotated_celltypes.jpg" alt="umap_annotated_celltypes" style="width: 70%;"/>
+<img src="figures/umap_clusters.png" alt="umap_clusters" style="width: 70%;"/>
 <p class="caption" style="text-align: center;"><b>Figure 1.</b> umap_annotated_celltypes</p>
 </div>
 
-# RNA Velocity Computation and Model Implementation
+# 🧬 RNA Velocity Computation and Model Implementation
 
 With our data properly structured, we proceed to the core analytical phase: RNA velocity computation using scVelo's sophisticated modeling framework. The package offers two distinct mathematical approaches:
 
@@ -519,7 +521,8 @@ adata = sc.read_h5ad('count/after_computing_velocity_merged_data.h5ad')
 ```
 
 
-# Visualization of RNA Velocity Vector Fields
+# 👀 Visualization of RNA Velocity Vector Fields
+
 
 The complex dynamics of cellular transcriptional states can be elegantly visualized through RNA velocity vector fields. By projecting velocity vectors onto two-dimensional embeddings (typically UMAP or t-SNE), we can observe:
 - Directional trends in gene expression changes
@@ -591,7 +594,7 @@ pdf_convert(pdf = "figures/scvelo_Xkr4_stream.pdf",
 <p class="caption" style="text-align: center;"><b>Figure 6.</b> scvelo_SLC17A6_stream</p>
 </div>
 
-# Advanced Downstream Analysis
+# 🎡 Advanced Downstream Analysis
 
 The RNA velocity framework enables sophisticated downstream analyses to extract biological insights from transcriptional dynamics. Our analytical pipeline encompasses:
 
@@ -729,7 +732,7 @@ sc.pp.neighbors(adata)
 sc.tl.leiden(adata, key_added='clusters')
 
 
-scv.tl.paga(adata, groups='clusters')
+scv.tl.paga(adata, groups='clusters_colors')
 df = scv.get_df(adata, 'paga/transitions_confidence', precision=2).T
 #df.style.background_gradient(cmap='Blues').format('{:.2g}')
 
@@ -738,7 +741,7 @@ scv.pl.paga(adata, basis='umap', size=50, alpha=.1,
 ```
 
 
-# Lineage-Specific Velocity Analysis
+# 🖇️ Lineage-Specific Velocity Analysis
 
 When analyzing complex tissues with multiple distinct cellular lineages, a targeted approach focusing on specific cell populations can reveal nuanced biological insights that might be obscured in global analysis. In this section, we demonstrate:
 
@@ -757,12 +760,24 @@ This refined approach enables deeper insights into lineage-specific developmenta
 cur_celltypes = ['Ductal', 'Ngn3 low EP', 'Ngn3 high EP', 'Pre-endocrine', 'Beta', 'Alpha', 'Delta', 'Epsilon']
 adata_subset = adata[adata.obs['clusters_coarse'].isin(cur_celltypes)]
 
-sc.pl.umap(adata_subset, color=['clusters'], frameon=False, title=['', ''])
+sc.pl.umap(adata_subset, color=['clusters'], frameon=False, title=['', ''], save="velocity_pl_umap.pdf")
 
 sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep='X_pca')
 ```
 
-# pre-process
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/umapvelocity_pl_umap.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/umapvelocity_pl_umap.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/umapvelocity_pl_umap.png" alt="umapvelocity_pl_umap" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 12.</b> umapvelocity_pl_umap</p>
+</div>
+
+
+
+# 🥨 pre-process
 ```{python dynamical,  class.source="python", eval=FALSE}
 
 scv.pp.filter_and_normalize(adata_subset)
@@ -776,6 +791,10 @@ scv.tl.velocity_graph(adata_subset)
 
 scv.pl.velocity_embedding_stream(adata_subset, basis='umap', color=['clusters'], save='embedding_stream.pdf', title='')
 ```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_embedding_stream.png" alt="scvelo_embedding_stream" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 13.</b> scvelo_embedding_stream</p>
+</div>
 
 
 ```{python dynamic-2,  class.source="python", eval=FALSE}
@@ -792,22 +811,93 @@ with scv.GridSpec(ncols=3) as pl:
 scv.get_df(adata_subset, 'fit*', dropna=True).head()
 
 scv.tl.latent_time(adata_subset)
-scv.pl.scatter(adata_subset, color='latent_time', color_map='gnuplot', size=80)
+scv.pl.scatter(adata_subset, color='latent_time', color_map='gnuplot', size=80, save='latent_time.pdf')
 ```
+
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_latent_time.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_latent_time.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_latent_time.png" alt="scvelo_latent_time" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 14.</b> scvelo_latent_time</p>
+</div>
+
+
+
+
+
 
 ```{python,  class.source="python", eval=FALSE}
+
 top_genes = adata_subset.var['fit_likelihood'].sort_values(ascending=False).index[:300]
-scv.pl.heatmap(adata_subset, var_names=top_genes, sortby='latent_time', col_color='clusters', n_convolve=100)
-
-top_genes = adata_subset.var['fit_likelihood'].sort_values(ascending=False).index
-scv.pl.scatter(adata_subset, color='clusters', basis=top_genes[:15], ncols=5, frameon=False)
-
-var_names = ['MTUS2', 'PPFIA2', 'NMNAT2']
-scv.pl.scatter(adata_subset, var_names, color='clusters', frameon=False)
-scv.pl.scatter(adata_subset, x='latent_time', y=var_names, color='clusters', frameon=False)
+scv.pl.heatmap(adata_subset, var_names=top_genes, sortby='latent_time', col_color='clusters', n_convolve=100, save='heatmap.pdf')
 ```
 
-# Conclusions and Future Perspectives
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_heatmap_heatmap.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_heatmap_heatmap.png", dpi = 300)
+```
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_heatmap_heatmap.png" alt="scvelo_heatmap" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 15.</b> scvelo_heatmap</p>
+</div>
+
+
+
+```{python,  class.source="python", eval=FALSE}
+top_genes = adata_subset.var['fit_likelihood'].sort_values(ascending=False).index
+scv.pl.scatter(adata_subset, color='clusters', basis=top_genes[:15], ncols=5, frameon=False, save='scatter.pdf')
+```
+
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_scatter.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_scatter.png", dpi = 300)
+```
+
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_scatter.png" alt="scvelo_scatter" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 16.</b> scvelo_scatter</p>
+</div>
+
+```{python,  class.source="python", eval=FALSE}
+var_names = ['Xkr4', 'Gm37381', 'Rp1']
+scv.pl.scatter(adata_subset, var_names, color='clusters', frameon=False, save='XGR_scatter_1.pdf')
+```
+
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_XGR_scatter_1.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_XGR_scatter_1.png", dpi = 300)
+```
+
+
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_XGR_scatter_1.png" alt="scvelo_XGR_scatter_1" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 17.</b> scvelo_XGR_scatter_1</p>
+</div>
+
+```{python,  class.source="python", eval=FALSE}
+scv.pl.scatter(adata_subset, x='latent_time', y=var_names, color='clusters', frameon=False, save='XGR_scatter_2.pdf')
+```
+
+```{r, eval=FALSE, echo=FALSE}
+pdf_convert(pdf = "figures/scvelo_XGR_scatter_2.pdf",
+  format = "png", pages = 1,
+  filenames = "figures/scvelo_XGR_scatter_2.png", dpi = 300)
+```
+
+
+<div class="figure" style="text-align: center">
+<img src="figures/scvelo_XGR_scatter_2.png" alt="scvelo_XGR_scatter_1" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 18.</b> scvelo_XGR_scatter_2</p>
+</div>
+
+# 🪗 Conclusions and Future Perspectives
+
 
 This comprehensive tutorial has demonstrated the power and versatility of RNA velocity analysis in single-cell transcriptomics using scVelo. We have explored:
 
@@ -831,10 +921,10 @@ This comprehensive tutorial has demonstrated the power and versatility of RNA ve
 
 As single-cell technologies continue to evolve, RNA velocity analysis stands as a fundamental tool for understanding cellular dynamics and developmental processes. The integration of these approaches with emerging computational methods promises to further enhance our understanding of complex biological systems.
 
-
-
-
-
+# ℹ️ Sessioninfomation
+```{r}
+sessionInfo()
+```
 
 
 
