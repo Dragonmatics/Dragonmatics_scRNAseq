@@ -453,6 +453,7 @@ print(adata)
 
 
 ## plot umap to check
+For the rest of this tutorial, we will play around using one of the in-built pancreas datasets.
 
 ```{python umap-plot,  class.source="python", eval=FALSE}
 adata = scv.datasets.pancreas()
@@ -590,8 +591,8 @@ pdf_convert(pdf = "figures/scvelo_Xkr4_stream.pdf",
   filenames = "figures/scvelo_Xkr4_stream.png", dpi = 300)
 ```
 <div class="figure" style="text-align: center">
-<img src="figures/scvelo_Xkr4_stream.png" alt="scvelo_SLC17A6_stream" style="width: 70%;"/>
-<p class="caption" style="text-align: center;"><b>Figure 6.</b> scvelo_SLC17A6_stream</p>
+<img src="figures/scvelo_Xkr4_stream.png" alt="scvelo_SLC17A6_stream" style="width: 80%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 6.</b> scvelo_Xkr4_stream</p>
 </div>
 
 # 🎡 Advanced Downstream Analysis
@@ -642,8 +643,8 @@ pdf_convert(pdf = "figures/scvelo_Ngn3 low EP_scatter.pdf",
   filenames = "figures/scvelo_Ngn3 low EP_scatter.png", dpi = 300)
 ```
 <div class="figure" style="text-align: center">
-<img src="figures/scvelo_Ngn3 low EP_scatter.png" alt="excitatory_neurons_scatter" style="width: 70%;"/>
-<p class="caption" style="text-align: center;"><b>Figure 7.</b> excitatory_neurons_scatter</p>
+<img src="figures/scvelo_Ngn3 low EP_scatter.png" alt="Ngn3 low EP_scatter" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 7.</b> Ngn3 low EP_scatter</p>
 </div>
 
 ```{python,  class.source="python", eval=FALSE}
@@ -653,11 +654,11 @@ scv.pl.scatter(adata, df['Ngn3 high EP'][:3], ylabel='Ngn3 high EP', frameon=Fal
 ```{r, eval=FALSE, echo=FALSE}
 pdf_convert(pdf = "figures/scvelo_Ngn3 high EP_scatter.pdf",
   format = "png", pages = 1,
-  filenames = "figures/scvelo_rNgn3 high EP_scatter.png", dpi = 300)
+  filenames = "figures/scvelo_Ngn3 high EP_scatter.png", dpi = 300)
 ```
 <div class="figure" style="text-align: center">
-<img src="figures/scvelo_rNgn3 high EP_scatter.png" alt="scvelo_radial_glia_scatter" style="width: 70%;"/>
-<p class="caption" style="text-align: center;"><b>Figure 8.</b> scvelo_radial_glia_scatter</p>
+<img src="figures/scvelo_Ngn3 high EP_scatter.png" alt="scvelo_radial_glia_scatter" style="width: 70%;"/>
+<p class="caption" style="text-align: center;"><b>Figure 8.</b> scvelo_Ngn3 high EP_scatter</p>
 </div>
 
 
